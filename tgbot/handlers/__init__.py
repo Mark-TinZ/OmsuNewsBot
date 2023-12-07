@@ -1,4 +1,4 @@
-from .echo import echo_router
+from .start import echo_router
 
 routers_list = [
     echo_router
