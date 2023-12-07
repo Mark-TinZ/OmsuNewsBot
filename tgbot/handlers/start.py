@@ -37,6 +37,7 @@ async def start(msg: Message, state: FSMContext) -> None:
         await state.set_state(StepsFormRegisterUser.Get_Confirm)
 
 
+# TODO: Тут нужно разобраться, завтразаймусь этим
 # Получение согласие и переход к след. этапу регистрации
 @start_router.callback_query(F.data == "confirm")
 async def get_confirm(call: CallbackQuery, state: FSMContext) -> None:
