@@ -35,7 +35,7 @@ class DbConfig:
         password = env.str("POSTGRES_PASSWORD")
         user = env.str("POSTGRES_USER")
         database = env.str("POSTGRES_DB")
-        port = env.int("DB_PORT", 5432)
+        port = env.int("DB_PORT")
         return DbConfig(
             host=host, password=password, user=user, database=database, port=port
         )
