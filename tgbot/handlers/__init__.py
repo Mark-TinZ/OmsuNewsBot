@@ -1,9 +1,9 @@
-from .start import echo_router
+from .start import start_router
 
 routers_list = [
-    echo_router
+    start_router
 ]
 
 __all__ = [
-    "routers_list"
+    "start_router"
 ]
