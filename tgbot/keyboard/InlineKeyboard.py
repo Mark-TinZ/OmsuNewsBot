@@ -11,3 +11,17 @@ select_confirm_regisrer = InlineKeyboardMarkup(inline_keyboard=[
     ]
 ])
 
+# Кнопка выбора роли
+select_role = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(
+            text="Студент",
+            callback_data="student"
+        ),
+        InlineKeyboardButton(
+            text="Преподователь",
+            callback_data="teacher"
+        )
+    ]
+])
+
