@@ -27,9 +27,9 @@ async def start(msg: Message, state: FSMContext) -> None:
     if not False:
         await msg.answer(welcome_message)
         await asyncio.sleep(1)
+        await state.set_state(StepsFormRegisterUser.Get_Confirm)
         await msg.answer(agreement_message,
                          reply_markup=select_confirm_regisrer)
-        await state.set_state(StepsFormRegisterUser.Get_Confirm)
     else:
         pass
 
@@ -38,21 +38,29 @@ async def start(msg: Message, state: FSMContext) -> None:
 # Получение согласие и переход к след. этапу регистрации
 @registration_router.callback_query(F.data == "confirm")
 async def get_confirm(call: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(confirm=True)
     await call.message.answer("""Для начала вам нужно
 зарегистрироваться.
 
 Выберите роль:""", reply_markup=select_role)
-    await state.set_data(confirm=True)
-    await state.get_state(StepsFormRegisterUser.Get_role)
+    await state.set_state(StepsFormRegisterUser.Get_role)
 
 
-# выбор роли студент
+# Выбор роли *студент*
 @registration_router.callback_query(F.data == "student")
 async def get_student(call: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(role="student")
     await call.message.answer("Выберите курс:", reply_markup=select_course)
+    await state.set_state(StepsFormRegisterUser.Get_Course)
+
+# TODO: сделать авторизацию препадователя
+# Выбор роли *препадователь*
+@registration_router.callback_query(F.data == "teacher")
+async def get_teacher(call: CallbackQuery, state: FSMContext) -> None:
+    await call.message.answer("nope")
 
 
-
+# Выбор курса (студент)
 @registration_router.callback_query(F.data.split("_")[0] == "course")
 async def get_course(call: CallbackQuery, state: FSMContext) -> None:
     await call.message.answer(f"Выберите группу: {call.data}")
@@ -60,4 +68,4 @@ async def get_course(call: CallbackQuery, state: FSMContext) -> None:
 
 @registration_router.callback_query(F.data == "back_course")
 async def get_course(call: CallbackQuery, state: FSMContext) -> None:
-    await call.message.answer(f"Выберите группу: {call.data}")
+    await state.set_state(StepsFormRegisterUser.Get_role)
