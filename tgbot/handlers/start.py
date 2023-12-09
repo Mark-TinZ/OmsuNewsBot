@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart
 from aiogram.fsm.state import StatesGroup, State
 
-from tgbot.keyboard.InlineKeyboard import select_confirm_regisrer
+from tgbot.keyboard.InlineKeyboard import select_confirm_regisrer, select_role
 
 start_router = Router()
 
@@ -37,8 +37,15 @@ async def start(msg: Message, state: FSMContext) -> None:
         await state.set_state(StepsFormRegisterUser.Get_Confirm)
 
 
-# TODO: Тут нужно разобраться, завтразаймусь этим
 # Получение согласие и переход к след. этапу регистрации
 @start_router.callback_query(F.data == "confirm")
 async def get_confirm(call: CallbackQuery, state: FSMContext) -> None:
-    await call.answer("Вот это пока на сегодня всё ;p")
+    await call.message.answer("""Для начала вам нужно
+зарегистрироваться.
+
+Выберите роль:""", reply_markup=select_role)
+
+# Ф-ция студента
+@start_router.callback_query(F.data == "student")
+async def get_student(call: CallbackQuery, state: FSMContext) -> None:
+    await call.message.answer("Выберите курс:")
