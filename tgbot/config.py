@@ -1,7 +1,10 @@
+import asyncio
 from dataclasses import dataclass
 from typing import Optional
 
 from environs import Env
+
+from tgbot.database.repo.postgresql import Database
 
 
 @dataclass
@@ -10,32 +13,16 @@ class DbConfig:
     password: str
     user: str
     database: str
-    port: int = 5432
-
-    def construct_sqlalchemy_url(self, driver="asyncpg", host=None, port=None) -> str:
-        from sqlalchemy.engine.url import URL
-
-        if not host:
-            host = self.host
-        if not port:
-            port = self.port
-        uri = URL.create(
-            drivername=f"postgresql+{driver}",
-            username=self.user,
-            password=self.password,
-            host=host,
-            port=port,
-            database=self.database,
-        )
-        return uri.render_as_string(hide_password=False)
+    port: int
 
     @staticmethod
     def from_env(env: Env):
-        host = env.str("DB_HOST")
-        password = env.str("POSTGRES_PASSWORD")
-        user = env.str("POSTGRES_USER")
-        database = env.str("POSTGRES_DB")
-        port = env.int("DB_PORT")
+        host = env.str("PG_HOST")
+        password = env.str("PG_PASS")
+        user = env.str("PG_USER")
+        database = env.str("DB_NAME")
+        port = env.int("PG_PORT")
+
         return DbConfig(
             host=host, password=password, user=user, database=database, port=port
         )
