@@ -4,7 +4,7 @@ from typing import Optional
 
 from environs import Env
 
-from tgbot.database.repo.postgresql import Database
+
 
 
 @dataclass
