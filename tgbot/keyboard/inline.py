@@ -1,4 +1,5 @@
 from aiogram.utils.keyboard import InlineKeyboardMarkup, InlineKeyboardButton
+from tgbot.data.constants import group_message, callback_data_group
 
 # Кнопка принятия согласия на обработку данных (при регистрации)
 select_confirm_regisrer = InlineKeyboardMarkup(inline_keyboard=[
@@ -51,3 +52,26 @@ select_course = InlineKeyboardMarkup(inline_keyboard=[
         )
     ]
 ])
+
+# TODO: Ужасный кстыль, нужно один раз запримать в таблицу при запуске и дать возможность обновлять таблицу командой.
+def inline_keyboard_group(course: str | int) -> InlineKeyboardMarkup:
+    if type(course) == int:
+        course = f"course_{course}"
+
+    groups: tuple = group_message[course]
+    callbacks: tuple = callback_data_group[course]
+    group_buttons: list = list()
+    for key, val in enumerate(groups):
+        group_buttons.append(InlineKeyboardButton(text=val, callback_data=callbacks[key]))
+
+    buttons: list = [
+        group_buttons,
+        [
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data="back_group"
+            )
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
