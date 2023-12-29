@@ -8,6 +8,7 @@ from tgbot.config import load_config
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 
+from tgbot.database.create_table import create_table_all
 from tgbot.handlers import routers_list
 from tgbot.services import broadcaster
 
@@ -46,5 +47,6 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(main())
+        asyncio.run(create_table_all())
     except (KeyboardInterrupt, SystemExit):
         logging.error("Бот был выключен!")
