@@ -1,10 +1,7 @@
-import asyncio
 from dataclasses import dataclass
 from typing import Optional
 
 from environs import Env
-
-
 
 
 @dataclass
@@ -13,16 +10,15 @@ class DbConfig:
     password: str
     user: str
     database: str
-    port: int
+    port: int = 5432
 
     @staticmethod
     def from_env(env: Env):
-        host = env.str("PG_HOST")
-        password = env.str("PG_PASS")
-        user = env.str("PG_USER")
-        database = env.str("DB_NAME")
-        port = env.int("PG_PORT")
-
+        host = env.str("DB_HOST")
+        password = env.str("POSTGRES_PASSWORD")
+        user = env.str("POSTGRES_USER")
+        database = env.str("POSTGRES_DB")
+        port = env.int("DB_PORT", 5432)
         return DbConfig(
             host=host, password=password, user=user, database=database, port=port
         )
@@ -37,7 +33,6 @@ class TgBot:
     def from_env(env: Env):
         token = env.str("BOT_TOKEN")
         admin_ids = list(map(int, env.list("ADMINS")))
-
         return TgBot(token=token, admin_ids=admin_ids)
 
 
