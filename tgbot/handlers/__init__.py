@@ -1,9 +1,9 @@
-from .registration import registration_router
+from tgbot.handlers.registration import registration_router
 
 routers_list = [
-    registration_router,
+    registration_router
 ]
 
 __all__ = [
-    "routers_list"
+    "routers_list",
 ]

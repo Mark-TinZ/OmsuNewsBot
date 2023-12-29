@@ -31,7 +31,7 @@ async def send_message(
         await asyncio.sleep(e.retry_after)
         return await send_message(
             bot, user_id, text, disable_notification, reply_markup
-        )  # Recursive call
+        )
     except exceptions.TelegramAPIError:
         logging.exception(f"Target [ID:{user_id}]: failed")
     else:
