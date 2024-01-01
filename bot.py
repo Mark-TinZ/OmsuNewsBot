@@ -6,7 +6,14 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from tgbot.config import load_config
+<<<<<<< HEAD
 from tgbot.database.create_database import create_database
+=======
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
+
+from tgbot.database.create_table import create_table_all
+>>>>>>> d630a21e0a9824d0f3f0a08af170881bba637763
 from tgbot.handlers import routers_list
 from tgbot.services import broadcaster
 
@@ -47,5 +54,6 @@ async def main():
 if __name__ == '__main__':
     try:
         asyncio.run(main())
+        asyncio.run(create_table_all())
     except (KeyboardInterrupt, SystemExit):
         logging.error("Bot stopped!")
