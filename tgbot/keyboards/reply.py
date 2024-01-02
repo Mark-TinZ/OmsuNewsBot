@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from tgbot.config import load_config
 
 
-def menu_keyboard(tg_id):
+def menu_keyboard(tg_id: int) -> ReplyKeyboardMarkup:
     admins = load_config().tg_bot.admin_ids
 
     if tg_id not in admins:

@@ -2,29 +2,22 @@ import asyncio
 from asyncio import get_event_loop
 
 import asyncpg
+from asyncpg.pool import Pool
 
-from tgbot.config import load_config
 
-
-class Database:
-    def __init__(self, loop: asyncio.AbstractEventLoop):
+class Database():
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
-        self.pool = None
+        self.pool: Pool = None
 
-    async def __aenter__(self):
-        config = load_config(".env")
-
+    async def connect(self, user, password, host, port, database) -> None:
         self.pool = await asyncpg.create_pool(
-            user=config.db.user,
-            password=config.db.password,
-            host=config.db.host,
-            port=config.db.port,
-            database=config.db.database
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database
         )
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.pool.close()
 
     @staticmethod
     def format_args(sql, parameters: dict):
@@ -36,7 +29,4 @@ class Database:
 
 
 loop = get_event_loop()
-database = Database(loop)
-
-
-db = Database(asyncio.get_event_loop())
+db = Database(loop)
