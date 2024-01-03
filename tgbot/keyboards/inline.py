@@ -26,7 +26,7 @@ choice_a_role_inline_keyboard = InlineKeyboardMarkup(
     ]
 )
 
-choice_a_course_inline_keyboard = InlineKeyboardMarkup(
+course_inline_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="1 курс", callback_data="course_1"),

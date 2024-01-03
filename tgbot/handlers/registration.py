@@ -2,14 +2,16 @@ from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from tgbot.data.constants import *
+from tgbot.data.constants import greeting_message, user_agreement_message, callback_data_group, list_group
 from tgbot.database.postgresql import db
 from tgbot.database.user import select_user, add_user
-from tgbot.keyboards.inline_user import *
+from tgbot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
+    choice_a_course_inline_keyboard, group_inline_keyboard, yes_or_back_inline_keyboard
 from tgbot.keyboards.reply import menu_keyboard
 from tgbot.states.registration_states import RegisterFrom
 
 registration_router = Router()
+
 
 
 @registration_router.message(F.text == "/start")
@@ -24,7 +26,7 @@ async def start(message: Message, state: FSMContext) -> None:
         await state.clear()
 
     user = await select_user(tg_id=message.from_user.id)
-
+    user
     if user is None:
         await state.set_state(RegisterFrom.get_msg)
         msg = await message.answer(greeting_message, reply_markup=super_inline_button)
@@ -60,11 +62,13 @@ async def choice_a_course(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer()
 
 
+
 @registration_router.callback_query(F.data.startswith("course_"))
 async def choice_a_group(call: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(course=call.data.split("_")[1])
+    course = call.data.split("_")[1]
+    await state.update_data(course=course)
     await state.set_state(RegisterFrom.get_group)
-    await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(call.data.split("_")[1]))
+    await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(course))
 
 
 @registration_router.callback_query(F.data.startswith("group_"))
@@ -99,11 +103,13 @@ async def adding_a_user_to_the_database(call: CallbackQuery, state: FSMContext) 
 
 
 @registration_router.callback_query(F.data.startswith('back_'))
-async def process_back(call: CallbackQuery) -> None:
+async def process_back(call: CallbackQuery, state: FSMContext) -> None:
     data = call.data
 
     if data == "back_course":
+        await state.set_state(RegisterFrom.get_role)
         await call.message.edit_text("Для начала вам нужно зарегистрироваться.\n\nВыберите роль:",
                                      reply_markup=choice_a_role_inline_keyboard)
     elif data == "back_group":
+        await state.set_state(RegisterFrom.get_course)
         await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
