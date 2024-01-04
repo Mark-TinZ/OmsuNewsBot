@@ -7,29 +7,36 @@ async def create_table_users(db: Database) -> any:
     sql = """
     CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY,
-        tg_id BIGINT UNIQUE,
-        role character varying(255) NOT NULL,
-        course INTEGER DEFAULT NULL,
-        "group" VARCHAR(255) DEFAULT NULL,
+        tg_id BIGINT UNIQUE NOT NULL,
+        role_id VARCHAR(255) NOT NULL,
+        course_number INTEGER DEFAULT NULL,
+        group_id VARCHAR(255) DEFAULT NULL,
         settings "char"[] NOT NULL DEFAULT '{}',
-        name character varying(255)
+        name VARCHAR(255) DEFAULT NULL
     )"""
 
     await db.pool.execute(sql)
 
-    # TODO: сделать новую таблицу для пар (уроки)
-    #    Schedules:
-    # • id (идентификатор)
-    # • subject (название предмета)
-    # • lesson_number (номер пары)
-    # • teacher (имя преподавателя)
-    # • group (название группы)
-    # • day_of_week (день недели)
-    # • academic_weeks (учебные недели, когда проходит предмет)
-    # • room (аудитория)
+
+async def create_table_schedules(db: Database) -> any:
+    sql = """
+    CREATE TABLE IF NOT EXISTS schedules(
+        id SERIAL PRIMARY KEY,
+        subject_id VARCHAR(255) NOT NULL,
+        lesson_number INTEGER NOT NULL,
+        teacher_id VARCHAR(255) NOT NULL,
+        group_id VARCHAR(255) NOT NULL,
+        weekday INTEGER NOT NULL,
+        academic_weeks INTEGER[] NOT NULL,
+        room INTEGER NOT NULL,
+        type_lesson VARCHAR(255) NOT NULL
+    )"""
+
+    await db.pool.execute(sql)
 
 
 async def create_database(db: Database) -> None:
     await create_table_users(db)
+    await create_table_schedules(db)
 
     logging.info("Database has been created!")

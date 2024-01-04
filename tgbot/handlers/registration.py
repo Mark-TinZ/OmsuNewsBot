@@ -26,7 +26,6 @@ async def start(message: Message, state: FSMContext) -> None:
     user = await select_user(tg_id=message.from_user.id)
     user
     if user is None:
-        await state.set_state(RegisterFrom.get_msg)
         msg = await message.answer(greeting_message, reply_markup=super_inline_button)
         await state.update_data(get_msg=msg)
         await state.set_state(RegisterFrom.get_super)
@@ -34,20 +33,20 @@ async def start(message: Message, state: FSMContext) -> None:
         await message.answer("Чем могу помочь?", reply_markup=menu_keyboard(message.from_user.id))
 
 
-@registration_router.callback_query(F.data == "super")
+@registration_router.callback_query(RegisterFrom.get_super, F.data == "super")
 async def user_agreement(call: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(RegisterFrom.get_agree)
     await call.message.edit_text(user_agreement_message, reply_markup=agree_inline_button)
 
 
-@registration_router.callback_query(F.data == "agree")
+@registration_router.callback_query(RegisterFrom.get_agree, F.data == "agree")
 async def choice_a_role(call: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(RegisterFrom.get_role)
     await call.message.edit_text("Для начала вам нужно зарегистрироваться.\n\nВыберите роль:",
                                  reply_markup=choice_a_role_inline_keyboard)
 
 
-@registration_router.callback_query(F.data.in_({"student", "teacher"}))
+@registration_router.callback_query(RegisterFrom.get_role, F.data.in_({"student", "teacher"}))
 async def choice_a_course(call: CallbackQuery, state: FSMContext) -> None:
     select_role = call.data
 
@@ -60,7 +59,7 @@ async def choice_a_course(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer()
 
 
-@registration_router.callback_query(F.data.startswith("course_"))
+@registration_router.callback_query(RegisterFrom.get_course, F.data.startswith("course_"))
 async def choice_a_group(call: CallbackQuery, state: FSMContext) -> None:
     course = call.data.split("_")[1]
     await state.update_data(course=course)
@@ -68,7 +67,7 @@ async def choice_a_group(call: CallbackQuery, state: FSMContext) -> None:
     await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(course))
 
 
-@registration_router.callback_query(F.data.startswith("group_"))
+@registration_router.callback_query(RegisterFrom.get_group, F.data.startswith("group_"))
 async def yes_or_back(call: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     course = data["course"]
@@ -98,7 +97,7 @@ async def adding_a_user_to_the_database(call: CallbackQuery, state: FSMContext) 
                               reply_markup=menu_keyboard(call.from_user.id))
 
 
-@registration_router.callback_query(F.data.startswith('back_'))
+@registration_router.callback_query(RegisterFrom.get_course, RegisterFrom.get_group, F.data.startswith('back_'))
 async def process_back(call: CallbackQuery, state: FSMContext) -> None:
     data = call.data
 
