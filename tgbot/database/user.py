@@ -1,5 +1,6 @@
-from tgbot.database.postgresql import db
 import logging
+
+from tgbot.database.postgresql import db
 
 user_map = dict()
 
@@ -44,7 +45,8 @@ async def select_user(**kwargs) -> any:
     return row
 
 
-async def create_user(tg_id: int, role: str = "user", course: int = None, group: str = None, settings: dict = None, name: str = None) -> User:
+async def create_user(tg_id: int, role: str = "user", course: int = None, group: str = None, settings: dict = None,
+                      name: str = None) -> User:
     await add_user(tg_id, role, course, group)
     return User(tg_id, role, course, group, settings, name)
 

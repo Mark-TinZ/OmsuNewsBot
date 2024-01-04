@@ -50,7 +50,7 @@ def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
     all_buttons = []
 
     for key, val in enumerate(groups):
-        group_buttons.append(InlineKeyboardButton(text=val, callback_data="admin-"+callbacks[key]))
+        group_buttons.append(InlineKeyboardButton(text=val, callback_data="admin-" + callbacks[key]))
         if len(group_buttons) == 2 or key == len(groups) - 1:
             all_buttons.append(group_buttons)
             group_buttons = []
@@ -58,6 +58,7 @@ def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
     all_buttons.append([InlineKeyboardButton(text="Назад", callback_data="admin-back_group")])
 
     return InlineKeyboardMarkup(inline_keyboard=all_buttons)
+
 
 weekday_inline_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[

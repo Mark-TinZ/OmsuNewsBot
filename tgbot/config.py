@@ -5,7 +5,7 @@ from environs import Env
 
 
 @dataclass
-class DbConfig():
+class DbConfig:
     host: str
     password: str
     user: str
@@ -25,7 +25,7 @@ class DbConfig():
 
 
 @dataclass
-class TgBot():
+class TgBot:
     token: str
     admin_ids: list[int]
     use_redis: bool
@@ -39,7 +39,7 @@ class TgBot():
 
 
 @dataclass
-class RedisConfig():
+class RedisConfig:
     redis_pass: Optional[str]
     redis_port: Optional[int]
     redis_host: Optional[str]
@@ -62,7 +62,7 @@ class RedisConfig():
 
 
 @dataclass
-class Config():
+class Config:
     tg_bot: TgBot
     db: Optional[DbConfig] = None
     redis: Optional[RedisConfig] = None

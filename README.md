@@ -16,11 +16,15 @@
 6. ...
 
 ## Install lib:
+
 ### Unix/maxOS
+
 ```shell
 python -m pip install -r requirements.txt
 ```
+
 ### Windows
+
 ```shell
 py -m pip install -r requirements.txt
 ```

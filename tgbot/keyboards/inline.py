@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from tgbot.data.constants import list_group, callback_data_group
 
 super_inline_button = InlineKeyboardMarkup(
