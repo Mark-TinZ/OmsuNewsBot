@@ -63,17 +63,17 @@ def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
 weekday_inline_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Пн", callback_data="admin-weekday_1"),
-            InlineKeyboardButton(text="Вт", callback_data="admin-weekday_2"),
-            InlineKeyboardButton(text="Ср", callback_data="admin-weekday_3")
+            InlineKeyboardButton(text="Пн", callback_data="weekday_1"),
+            InlineKeyboardButton(text="Вт", callback_data="weekday_2"),
+            InlineKeyboardButton(text="Ср", callback_data="weekday_3")
         ],
         [
-            InlineKeyboardButton(text="Чт", callback_data="admin-weekday_4"),
-            InlineKeyboardButton(text="Пт", callback_data="admin-weekday_5"),
-            InlineKeyboardButton(text="Сб", callback_data="admin-weekday_6"),
+            InlineKeyboardButton(text="Чт", callback_data="weekday_4"),
+            InlineKeyboardButton(text="Пт", callback_data="weekday_5"),
+            InlineKeyboardButton(text="Сб", callback_data="weekday_6"),
         ],
         [
-            InlineKeyboardButton(text="Назад", callback_data="admin-back_weekday")
+            InlineKeyboardButton(text="Назад", callback_data="back_weekday")
         ]
     ]
 )
