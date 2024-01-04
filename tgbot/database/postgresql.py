@@ -8,7 +8,7 @@ from asyncpg.pool import Pool
 class Database():
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
-        self.pool: Pool = None
+        self.pool = None
 
     async def connect(self, user, password, host, port, database) -> None:
         self.pool = await asyncpg.create_pool(
