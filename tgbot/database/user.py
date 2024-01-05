@@ -1,19 +1,28 @@
 import logging
 import json
 
+from dataclasses import dataclass
 from tgbot.database.postgresql import db
 
 user_map = dict()
 
 
-class Role:
+@dataclass
+class Role():
     def __init__(self, id: str, name: str):
-        self.id = id
-        self.name = name
+        pass
+
+@dataclass
+class Student():
+    pass
+
+@dataclass
+class Teacher():
+    pass
 
 
 class User:
-    def __init__(self, tg_id: int, role: str, course: int, group: str, settings: dict, name: str) -> None:
+    def __init__(self, tg_id: int, role: Role, course: int, group: int, settings: dict, name: str) -> None:
         self.tg_id = tg_id
         self.role = role
         self.course = course
@@ -24,7 +33,7 @@ class User:
         user_map[tg_id] = self
 
     @staticmethod
-    def deserialize(tg_id: int, role_id: str, course_number: int, group_id: int, settings: str, name: str):
+    def deserialize(tg_id: int, role_id: str, settings: str, name: str):
         return User(tg_id, role_id, course_number, "GROUP-" + str(group_id), json.loads(settings), name)
 
     async def set_role(self, role: str) -> bool:
@@ -39,7 +48,7 @@ class User:
             return True
         return False
     
-    async def get_tg_id(self):
+    def get_tg_id(self):
         return self.tg_id
 
     def is_valid(self):
@@ -49,6 +58,7 @@ class User:
         if user_map[self.tg_id] == self:
             del user_map[self.tg_id]
         self.is_released = True
+
 
 
 async def add_user(tg_id: int, role: str = "user", course: int = None, group: str = None):
