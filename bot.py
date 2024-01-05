@@ -45,12 +45,11 @@ async def main() -> None:
     config = load_config(".env")
     storage = get_storage(config)
 
+    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
+    await bot.delete_webhook(drop_pending_updates=True)
+    dp = Dispatcher(storage=storage)
     await db.connect(config.db.user, config.db.password, config.db.host, config.db.port, config.db.database)
     await create_database(db)
-
-    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
-    dp = Dispatcher(storage=storage)
-
     bot.config = config
 
     dp.include_routers(*routers_list)
