@@ -3,8 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from tgbot.data.constants import description_admin_panel, callback_data_group, list_group
-from tgbot.database.user import select_user
-from tgbot.database.schedule import select_schedule
+# from tgbot.database.user import select_user
+# from tgbot.database.schedule import select_schedule
 from tgbot.keyboards.inline_admin import admin_menu_inline, moderator_menu_inline, weekday_inline_keyboard
 from tgbot.keyboards.inline_user import choice_a_course_inline_keyboard, group_inline_keyboard
 from tgbot.states.admin_states import SchedulesFrom
@@ -15,12 +15,12 @@ admin_router = Router()
 @admin_router.message(F.text == "Админ-панель")
 async def menu_admin(message: Message, state: FSMContext) -> None:
     await state.clear()
-    user = await select_user(tg_id=message.from_user.id)
+    # user = await select_user(tg_id=message.from_user.id)
     
     if message.from_user.id in message.bot.config.tg_bot.admin_ids:
         await message.answer(f"<b>Админ-панель:</b> \n{description_admin_panel}", reply_markup=admin_menu_inline)
-    elif user['role'] == 'moderator':
-        await message.answer(f"<b>Админ-панель:</b> \n{description_admin_panel}", reply_markup=moderator_menu_inline)
+    # elif user['role'] == 'moderator':
+    #     await message.answer(f"<b>Админ-панель:</b> \n{description_admin_panel}", reply_markup=moderator_menu_inline)
 
 
 @admin_router.callback_query(F.data == "edit_schedules")
@@ -57,11 +57,11 @@ async def get_weekday(call: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(weekday=call.data.split("_")[1])
 
     data = await state.get_data()
-    schedule = await select_schedule(group_id=data['group'], weekday=int(data['weekday']))
-    
+    # schedule = await select_schedule(group_id=data['group'], weekday=int(data['weekday']))
     text_schedule = "Расписание пар на *день недели*:"
-    if schedule is None:
-        await call.message.edit_text(text_schedule)
+    await call.message.edit_text(text_schedule)
+    # if schedule is None:
+    #     await call.message.edit_text(text_schedule)
 
 
 @admin_router.callback_query(SchedulesFrom.get_course, SchedulesFrom.get_group, SchedulesFrom.get_weekday, F.data.startswith('back_'))
@@ -70,15 +70,15 @@ async def process_back(call: CallbackQuery, state: FSMContext) -> None:
 
     if data == "back_course":
         await state.clear()
-        user = await select_user(tg_id=call.from_user.id)
+        # user = await select_user(tg_id=call.from_user.id)
 
         if call.from_user.id in call.message.bot.config.tg_bot.admin_ids:
             await call.message.edit_text(f"<b>Админ-панель:</b> \n{description_admin_panel}",
                                          reply_markup=admin_menu_inline)
-        elif user['role'] == 'moderator':
-            await call.message.edit_text(f"<b>Админ-панель:</b> \n{description_admin_panel}",
-                                         reply_markup=moderator_menu_inline)
-    elif data == "back_group":
+        # elif user['role'] == 'moderator':
+        #     await call.message.edit_text(f"<b>Админ-панель:</b> \n{description_admin_panel}",
+        #                                  reply_markup=moderator_menu_inline)
+    elif data == "back_group": 
         await state.set_state(SchedulesFrom.get_course)
         await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
     elif data == "back_weekday":
