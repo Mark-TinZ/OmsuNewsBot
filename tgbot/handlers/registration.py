@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from tgbot.data.constants import greeting_message, user_agreement_message, callback_data_group, list_group
-from tgbot.database.user import select_user, add_user
+# from tgbot.database.user import select_user, add_user
 from tgbot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
     choice_a_course_inline_keyboard, group_inline_keyboard, yes_or_back_inline_keyboard
 from tgbot.keyboards.reply import menu_keyboard
@@ -23,9 +23,9 @@ async def start(message: Message, state: FSMContext) -> None:
             await message.bot.delete_message(message.chat.id, msg.message_id)
         await state.clear()
 
-    user = await select_user(tg_id=message.from_user.id)
-    user
-    if user is None:
+    # user = await select_user(tg_id=message.from_user.id)
+    # if user is None:
+    if True:
         msg = await message.answer(greeting_message, reply_markup=super_inline_button)
         await state.update_data(get_msg=msg)
         await state.set_state(RegisterFrom.get_super)
@@ -92,7 +92,7 @@ async def adding_a_user_to_the_database(call: CallbackQuery, state: FSMContext) 
     group = data["group"]
 
     await state.clear()
-    await add_user(call.from_user.id, role, int(course), group)
+    # await add_user(call.from_user.id, role, int(course), group)
     await call.message.answer("Отлично! Вы успешно зарегистрированы. Приятного пользования!",
                               reply_markup=menu_keyboard(call.from_user.id))
 
