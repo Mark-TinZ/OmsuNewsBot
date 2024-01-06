@@ -60,7 +60,6 @@ class User:
         self.is_released = True
 
 
-
 async def add_user(tg_id: int, role: str = "user", course: int = None, group: str = None):
     sql = "INSERT INTO users (tg_id, role_id, course_number, group_id) VALUES($1, $2, $3, $4)"
     return await db.pool.execute(sql, tg_id, role, course, group)
