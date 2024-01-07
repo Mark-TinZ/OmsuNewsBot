@@ -1,21 +1,26 @@
-import logging
-from aiogram import Router, F
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile
-from aiogram.filters import CommandStart
-from aiogram.utils.chat_action import ChatActionSender
-from aiogram.methods.send_video_note import SendVideoNote
-
-
-from omsu_bot.data.constants import greeting_message, user_agreement_message, callback_data_group, list_group
-from omsu_bot.database.models import Student, User
-from omsu_bot.handlers import Handler
-from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
-	choice_a_course_inline_keyboard, group_inline_keyboard, yes_or_back_inline_keyboard
-from omsu_bot.states.registration_states import RegisterFrom
-
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
+from aiogram import Router, F
+from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.chat_action import ChatActionSender
+
+from omsu_bot.data.constants import greeting_message, user_agreement_message
+from omsu_bot.database.models import Student, User, Group
+from omsu_bot.handlers import Handler
+from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
+	choice_a_course_inline_keyboard, yes_or_back_inline_keyboard
+
+
+class RegisterFrom(StatesGroup):
+	get_super = State()
+	get_agree = State()
+	get_role = State()
+	get_course = State()
+	get_group = State()
+
 
 class Registration(Handler):
 	def __init__(self) -> None:
@@ -37,8 +42,7 @@ class Registration(Handler):
 
 			sess: sorm.Session = self.bot.db.session
 			with sess.begin():
-				res: sa.CursorResult = sess.execute(sa.select(User).where(User.tg_id == message.from_user.id))
-				user: User = res.scalar_one_or_none()
+				user: User = sess.execute(sa.select(User).where(User.tg_id == message.from_user.id)).scalar_one_or_none()
 
 			if user is None:
 				msg = await message.answer(greeting_message, reply_markup=super_inline_button)
@@ -64,25 +68,39 @@ class Registration(Handler):
 			select_role = call.data
 
 			if select_role == "student":
-				await state.update_data(role_id=select_role)
 				await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
 				await state.set_state(RegisterFrom.get_course)
 			elif select_role == "teacher":
 				await call.message.answer("В разработке...")
 				await call.answer()
-				
+
 		@router.callback_query(RegisterFrom.get_course, F.data.startswith("course_"))
-		async def on_course_select(call: CallbackQuery, state: FSMContext) -> None:
-			try:
-				course_number = int(call.data.split("_")[1])
-				await state.update_data(course_number=course_number)
-				await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(course_number))
-				await state.set_state(RegisterFrom.get_group)
-			except:
-				await call.message.edit_text("Ошибка! Что-то пошло не так...")
+		async def student_course_selected(call: CallbackQuery, state: FSMContext) -> None:
+			course_number = int(call.data.split("_")[1])
+			await state.update_data(course_number=course_number)
+
+			sess: sorm.Session = self.bot.db.session
+
+			with sess.begin():
+				groups = sess.execute(sa.select(Group, Group.id_, Group.name).where(Group.course_number == course_number))
+
+			rows = list()
+			last_row = None
+			for group in groups.scalars():
+				button = InlineKeyboardButton(text=group.name, callback_data="group_"+group.id+"_"+group.name)
+				if last_row is list:
+					last_row.append(button)
+					last_row = None
+				else:
+					last_row = [button]
+					rows.append(last_row)
+
+			await call.message.edit_text("Выберите группу:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+			await state.set_state(RegisterFrom.get_group)
+
 
 		@router.callback_query(RegisterFrom.get_group, F.data.startswith("group_"))
-		async def on_group_select(call: CallbackQuery, state: FSMContext) -> None:
+		async def student_group_selected(call: CallbackQuery, state: FSMContext) -> None:
 			try:
 				spl = call.data.split("_")
 				group_id = int(spl[1])
@@ -97,34 +115,31 @@ class Registration(Handler):
 				await call.message.edit_text("Ошибка! Что-то пошло не так...")
 
 		@router.callback_query(F.data == "yes")
-		async def on_data_confirm(call: CallbackQuery, state: FSMContext) -> None:
+		async def student_data_confirmed(call: CallbackQuery, state: FSMContext) -> None:
 			await call.message.delete()
 
 			data = await state.get_data()
-			role_id = data.get("role_id", None)
-			course = data.get("course", None)
 			group_id = data.get("group_id", None)
 
 			await state.clear()
 
 			success = False
 
-			if True:
+			if group_id is int:
 				tg_id = call.from_user.id
 				sess: sorm.Session = self.bot.db.session
 				with sess.begin():
 					if sess.execute(sa.select(User).where(User.tg_id == tg_id)).first() is None:
-						pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id=role_id)).inserted_primary_key
+						pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
 						if pk:
-							student = Student(user_id=pk[0], course_number=course, group_id=group_id)
+							student = Student(user_id=pk[0], group_id=group_id)
 							sess.add(student)
 							success = True
 
 			if success:
-				await call.message.answer("Отлично! Вы успешно зарегистрированы. Приятного пользования!")
-										#reply_markup=menu_keyboard(call.from_user.id)
+				await call.message.edit_text("Отлично! Вы успешно зарегистрированы. Приятного пользования!")
 			else:
-				await call.message.answer("При регистрации возникла ошибка...") #, reply_markup=menu_keyboard(call.from_user.id))
+				await call.message.edit_text("При регистрации возникла ошибка...") #, reply_markup=menu_keyboard(call.from_user.id))
 				async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
 					video_note = FSInputFile("media/video/cat-huh.mp4")
 					await call.message.answer_video_note(video_note)
