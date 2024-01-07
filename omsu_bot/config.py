@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from lib2to3.pgen2 import driver
 from typing import Optional
 
 from environs import Env
 
 
 @dataclass
-class DbConfig():
+class DbConfig:
     host: str
     password: str
     user: str
@@ -28,21 +27,20 @@ class DbConfig():
 
 
 @dataclass
-class TgBot:
+class BotConfig:
     token: str
     admin_ids: list[int]
-    
+
     @staticmethod
     def from_env(env: Env):
         token = env.str("BOT_TOKEN")
         admin_ids = list(map(int, env.list("ADMINS")))
-        return TgBot(token=token, admin_ids=admin_ids)
-
+        return BotConfig(token=token, admin_ids=admin_ids)
 
 
 @dataclass
 class Config:
-    tg_bot: TgBot
+    bot: BotConfig
     db: Optional[DbConfig] = None
 
 
@@ -51,6 +49,6 @@ def load_config(path: str = None) -> Config:
     env.read_env(path)
 
     return Config(
-        tg_bot=TgBot.from_env(env),
+        bot=BotConfig.from_env(env),
         db=DbConfig.from_env(env)
     )

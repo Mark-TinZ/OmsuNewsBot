@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from tgbot.data.constants import list_group, callback_data_group
+from omsu_bot.data.constants import list_group, callback_data_group
 
 super_inline_button = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -27,7 +27,7 @@ choice_a_role_inline_keyboard = InlineKeyboardMarkup(
     ]
 )
 
-course_inline_keyboard = InlineKeyboardMarkup(
+choice_a_course_inline_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="1 курс", callback_data="course_1"),
@@ -44,7 +44,7 @@ course_inline_keyboard = InlineKeyboardMarkup(
 )
 
 
-def group_inline_keyboard(course):
+def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
     groups = list_group[course]
     callbacks = callback_data_group[course]
 
