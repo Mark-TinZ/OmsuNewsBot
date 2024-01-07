@@ -23,10 +23,8 @@ list_group = {
 }
 
 callback_data_group = {
-    "1": (
-    "group_DYN311", "group_DBN309", "group_DYN309", "group_DAN309", "group_DIN309", "group_DTN309", "group_DHN309"),
-    "2": (
-    "group_DYN211", "group_DAN209", "group_DIN209", "group_DIN219", "group_DTN209", "group_DHN209", "group_DBN211"),
+    "1": ("group_DYN311", "group_DBN309", "group_DYN309", "group_DAN309", "group_DIN309", "group_DTN309", "group_DHN309"),
+    "2": ("group_DYN211", "group_DAN209", "group_DIN209", "group_DIN219", "group_DTN209", "group_DHN209", "group_DBN211"),
     "3": ("group_DYN109", "group_DAN109", "group_DIN109", "group_DIN111", "group_DTN109", "group_DHN109"),
     "4": ("group_DAN009", "group_DIN009", "group_DTN009", "group_DHN009")
 }
