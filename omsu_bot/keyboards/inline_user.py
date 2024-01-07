@@ -44,6 +44,8 @@ choice_a_course_inline_keyboard = InlineKeyboardMarkup(
 )
 
 
+
+
 def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
     groups = list_group[course]
     callbacks = callback_data_group[course]

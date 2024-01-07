@@ -13,7 +13,6 @@ class User(Base):
 	role_id = sa.Column(sa.String(64), nullable=False, default="")
 	settings =  sa.Column(sa.JSON(), default=dict())
 
-
 class Teacher(Base):
 	__tablename__ = "teacher"
 
@@ -32,14 +31,12 @@ class Group(Base):
 	name = sa.Column(sa.String(256), nullable=False)
 	course_number = sa.Column(sa.Integer, nullable=False)
 
-
 class Student(Base):
 	__tablename__ = "student"
 
 	id_ = sa.Column("id", sa.Integer, primary_key=True)
 	user_id = sa.Column(sa.ForeignKey(User.id_), unique=True)
 	group_id = sa.Column(sa.ForeignKey(Group.id_))
-	course_number = sa.Column(sa.Integer, nullable=False)
 	is_moderator = sa.Column(sa.Boolean,  default=False)
 
 
