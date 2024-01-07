@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from tgbot.data.constants import list_group, callback_data_group
+from omsu_bot.data.constants import list_group, callback_data_group
 
 admin_menu_inline = InlineKeyboardMarkup(
     inline_keyboard=[

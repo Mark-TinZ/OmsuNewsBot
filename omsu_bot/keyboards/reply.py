@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-from tgbot.config import load_config
+from omsu_bot.config import load_config
 
 
 def menu_keyboard(tg_id: int) -> ReplyKeyboardMarkup:
