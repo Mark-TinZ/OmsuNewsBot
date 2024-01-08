@@ -1,3 +1,6 @@
+import logging
+from pydoc import doc
+import stat
 from tokenize import group
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
@@ -12,7 +15,7 @@ from omsu_bot.data.constants import greeting_message, user_agreement_message
 from omsu_bot.database.models import Student, User, Group
 from omsu_bot.handlers import Handler
 from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
-	choice_a_course_inline_keyboard, group_inline_keyboard
+	choice_a_course_inline_keyboard, yes_or_back_inline_keyboard, group_inline_keyboard
 
 class RegisterFrom(StatesGroup):
 	get_super = State()
@@ -83,9 +86,8 @@ class Registration(Handler):
 			sess: sorm.Session = self.bot.db.session
 			
 			with sess.begin():
-				res: sa.ScalarResult = sess.query(Group).filter(Group.course_number == course_number).scalars()
-			
-			groups = [(group.name, group.id) for group in res]
+				res: sa.ScalarResult = sess.execute(sa.select(Group).where(Group.course_number == course_number)).scalars()
+			groups = [(group.name, group.id_) for group in res]
 
 			await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(groups))
 			await state.set_state(RegisterFrom.get_group)
@@ -97,18 +99,23 @@ class Registration(Handler):
 				spl = call.data.split("_")
 				group_id = int(spl[1])
 				group_name = spl[2]
+			except Exception as e:
+				await call.message.edit_text("При регистрации возникла ошибка...")
+				async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
+					video_note = FSInputFile("media/video/cat-huh.mp4")
+					await call.message.answer_video_note(video_note)
+				logging.error(e)
+				return
 
-				await state.update_data(group_id=group_id)
-				data = await state.get_data()
-				course = data["course"]
-				await call.message.edit_text(f"Курс: {course}\nГруппа: {group_name}\n\nВсе верно?",
-											reply_markup=yes_or_back_inline_keyboard)
-			except:
-				await call.message.edit_text("Ошибка! Что-то пошло не так...")
+			await state.update_data(group_id=group_id)
+			data = await state.get_data()
+			course = data["course_number"]
+			await call.message.edit_text(f"Курс: {course}\nГруппа: {group_name}\n\nВсе верно?",
+										reply_markup=yes_or_back_inline_keyboard)
 
 		@router.callback_query(F.data == "yes")
 		async def student_data_confirmed(call: CallbackQuery, state: FSMContext) -> None:
-			await call.message.delete()
+			# await call.message.delete()
 
 			data = await state.get_data()
 			group_id = data.get("group_id", None)
@@ -117,16 +124,14 @@ class Registration(Handler):
 
 			success = False
 
-			if group_id is int:
-				tg_id = call.from_user.id
-				sess: sorm.Session = self.bot.db.session
-				with sess.begin():
-					if sess.execute(sa.select(User).where(User.tg_id == tg_id)).first() is None:
-						pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
-						if pk:
-							student = Student(user_id=pk[0], group_id=group_id)
-							sess.add(student)
-							success = True
+			tg_id = call.from_user.id
+			sess: sorm.Session = self.bot.db.session
+			with sess.begin():
+				pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
+				if pk:
+					student = Student(user_id=pk[0], group_id=group_id)
+					sess.add(student)
+					success = True
 
 			if success:
 				await call.message.edit_text("Отлично! Вы успешно зарегистрированы. Приятного пользования!")
@@ -136,17 +141,13 @@ class Registration(Handler):
 					video_note = FSInputFile("media/video/cat-huh.mp4")
 					await call.message.answer_video_note(video_note)
 
-		@router.callback_query(RegisterFrom.get_course, RegisterFrom.get_group, F.data.startswith('back_'))
+		@router.callback_query(F.data.startswith('back_'))
 		async def process_back(call: CallbackQuery, state: FSMContext) -> None:
 			data = call.data
-
-			if data == "back_course":
-				await state.set_state(RegisterFrom.get_role)
-				await call.message.edit_text("Для начала вам нужно зарегистрироваться.\n\nВыберите роль:",
-											reply_markup=choice_a_role_inline_keyboard)
-			elif data == "back_group":
-				await state.set_state(RegisterFrom.get_course)
-				await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
+			
+			match data:
+				case "back_course":
+					RegisterFrom.get_role.set_parent()
 
 	async def enable(self, bot):
 		await super().enable(bot)
