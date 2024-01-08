@@ -1,18 +1,18 @@
+from tokenize import group
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot.data.constants import greeting_message, user_agreement_message
 from omsu_bot.database.models import Student, User, Group
 from omsu_bot.handlers import Handler
 from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
-	choice_a_course_inline_keyboard, yes_or_back_inline_keyboard
-
+	choice_a_course_inline_keyboard, group_inline_keyboard
 
 class RegisterFrom(StatesGroup):
 	get_super = State()
@@ -71,7 +71,8 @@ class Registration(Handler):
 				await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
 				await state.set_state(RegisterFrom.get_course)
 			elif select_role == "teacher":
-				await call.message.answer("В разработке...")
+				await state.clear()  # TODO: Затычка
+				await call.message.edit_text("В разработке...")
 				await call.answer()
 
 		@router.callback_query(RegisterFrom.get_course, F.data.startswith("course_"))
@@ -80,22 +81,13 @@ class Registration(Handler):
 			await state.update_data(course_number=course_number)
 
 			sess: sorm.Session = self.bot.db.session
-
+			
 			with sess.begin():
-				groups = sess.execute(sa.select(Group, Group.id_, Group.name).where(Group.course_number == course_number))
+				res: sa.ScalarResult = sess.query(Group).filter(Group.course_number == course_number).scalars()
+			
+			groups = [(group.name, group.id) for group in res]
 
-			rows = list()
-			last_row = None
-			for group in groups.scalars():
-				button = InlineKeyboardButton(text=group.name, callback_data="group_"+group.id+"_"+group.name)
-				if last_row is list:
-					last_row.append(button)
-					last_row = None
-				else:
-					last_row = [button]
-					rows.append(last_row)
-
-			await call.message.edit_text("Выберите группу:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+			await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(groups))
 			await state.set_state(RegisterFrom.get_group)
 
 
