@@ -37,7 +37,7 @@ class Student(Base):
 	id_ = sa.Column("id", sa.Integer, primary_key=True)
 	user_id = sa.Column(sa.ForeignKey(User.id_), unique=True)
 	group_id = sa.Column(sa.ForeignKey(Group.id_))
-	is_moderator = sa.Column(sa.Boolean,  default=False)
+	is_moderator = sa.Column(sa.Boolean, nullable=False, default=False)
 
 
 class Subject(Base):

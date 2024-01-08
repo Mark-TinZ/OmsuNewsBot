@@ -48,9 +48,17 @@ def group_inline_keyboard(groups: list) -> InlineKeyboardMarkup:
 	builder = InlineKeyboardBuilder()
 
 	for key in groups:
-		builder.button(text=key[0], callback_data="group_"+key[1])	
+		builder.button(text=key[0], callback_data="group_"+str(key[1])+"_"+key[0])	
 		builder.adjust(2)
 	builder.button(text="Назад", callback_data="back_group")
 
 	return builder.as_markup()
 
+yes_or_back_inline_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да, все верно", callback_data="yes"),
+            InlineKeyboardButton(text="Назад", callback_data="back_group")
+        ]
+    ]
+)
