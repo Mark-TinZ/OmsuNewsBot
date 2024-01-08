@@ -1,6 +1,10 @@
+
 from aiogram import Router, F
-from aiogram.fsm.context import FSMContext
+
 from aiogram.types import Message, CallbackQuery
+
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 
 from omsu_bot.data.constants import description_admin_panel, callback_data_group, list_group
 from omsu_bot.database.models import Student
@@ -11,6 +15,14 @@ from omsu_bot.states.admin_states import SchedulesFrom
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
+
+
+
+class SchedulesFrom(StatesGroup):
+    get_course = State()
+    get_group = State()
+    get_weekday = State()
+    get_pairs = State()
 
 
 class Administration(Handler):

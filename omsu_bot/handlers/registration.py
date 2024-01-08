@@ -17,12 +17,17 @@ from omsu_bot.handlers import Handler
 from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
 	choice_a_course_inline_keyboard, yes_or_back_inline_keyboard, group_inline_keyboard
 
+
+
+
+
 class RegisterFrom(StatesGroup):
 	get_super = State()
 	get_agree = State()
 	get_role = State()
 	get_course = State()
 	get_group = State()
+
 
 
 class Registration(Handler):
