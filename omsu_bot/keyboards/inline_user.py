@@ -1,5 +1,6 @@
+from distutils.command import build
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from omsu_bot.data.constants import list_group, callback_data_group
 
 super_inline_button = InlineKeyboardMarkup(
@@ -43,32 +44,13 @@ choice_a_course_inline_keyboard = InlineKeyboardMarkup(
     ]
 )
 
+def group_inline_keyboard(groups: list) -> InlineKeyboardMarkup:
+	builder = InlineKeyboardBuilder()
 
+	for key in groups:
+		builder.button(text=key[0], callback_data="group_"+key[1])	
+		builder.adjust(2)
+	builder.button(text="Назад", callback_data="back_group")
 
+	return builder.as_markup()
 
-def group_inline_keyboard(course: str) -> InlineKeyboardMarkup:
-    groups = list_group[course]
-    callbacks = callback_data_group[course]
-
-    group_buttons = []
-    all_buttons = []
-
-    for key, val in enumerate(groups):
-        group_buttons.append(InlineKeyboardButton(text=val, callback_data=callbacks[key]))
-        if len(group_buttons) == 2 or key == len(groups) - 1:
-            all_buttons.append(group_buttons)
-            group_buttons = []
-
-    all_buttons.append([InlineKeyboardButton(text="Назад", callback_data="back_group")])
-
-    return InlineKeyboardMarkup(inline_keyboard=all_buttons)
-
-
-yes_or_back_inline_keyboard = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Да, все верно", callback_data="yes"),
-            InlineKeyboardButton(text="Назад", callback_data="back_group")
-        ]
-    ]
-)
