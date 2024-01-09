@@ -17,7 +17,7 @@ class Database:
 		await self.create_all_metadata()
 
 		sess = sorm.Session(self.engine)
-		self._session = sess # ?
+		self._session = sess
 
 	async def shutdown(self):
 		if self._session:

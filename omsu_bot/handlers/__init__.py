@@ -14,3 +14,13 @@ class Handler:
 
     async def disable(self):
         self.bot = None
+
+
+
+class RouterHandler(Handler):
+    router = Router()
+
+    async def enable(self, bot):
+        await super().enable(bot)
+        bot.dispatcher.include_router(self.router)
+

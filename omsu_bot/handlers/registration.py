@@ -1,7 +1,5 @@
 import logging
-from pydoc import doc
-import stat
-from tokenize import group
+
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 from aiogram import Router, F
@@ -13,15 +11,12 @@ from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot.data.constants import greeting_message, user_agreement_message
 from omsu_bot.database.models import Student, User, Group
-from omsu_bot.handlers import Handler
+from omsu_bot.handlers import RouterHandler
 from omsu_bot.keyboards.inline_user import super_inline_button, agree_inline_button, choice_a_role_inline_keyboard, \
 	choice_a_course_inline_keyboard, yes_or_back_inline_keyboard, group_inline_keyboard
 
 
-
-
-
-class RegisterFrom(StatesGroup):
+class RegisterForm(StatesGroup):
 	get_super = State()
 	get_agree = State()
 	get_role = State()
@@ -30,12 +25,9 @@ class RegisterFrom(StatesGroup):
 
 
 
-class Registration(Handler):
+class Registration(RouterHandler):
 	def __init__(self) -> None:
-		super().__init__()
-
-		router = Router()
-		self.router = router
+		router = self.router
 
 		@router.message(CommandStart())
 		async def handle_start(message: Message, state: FSMContext) -> None:
@@ -55,35 +47,35 @@ class Registration(Handler):
 			if user is None:
 				msg = await message.answer(greeting_message, reply_markup=super_inline_button)
 				await state.update_data(get_msg=msg)
-				await state.set_state(RegisterFrom.get_super)
+				await state.set_state(RegisterForm.get_super)
 			else:
 				await message.answer("Чем могу помочь?") #, reply_markup=menu_keyboard(message.from_user.id))
 				pass
 
-		@router.callback_query(RegisterFrom.get_super, F.data == "super")
+		@router.callback_query(RegisterForm.get_super, F.data == "super")
 		async def on_super(call: CallbackQuery, state: FSMContext) -> None:
-			await state.set_state(RegisterFrom.get_agree)
+			await state.set_state(RegisterForm.get_agree)
 			await call.message.edit_text(user_agreement_message, reply_markup=agree_inline_button)
 
-		@router.callback_query(RegisterFrom.get_agree, F.data == "agree")
+		@router.callback_query(RegisterForm.get_agree, F.data == "agree")
 		async def on_agree(call: CallbackQuery, state: FSMContext) -> None:
-			await state.set_state(RegisterFrom.get_role)
+			await state.set_state(RegisterForm.get_role)
 			await call.message.edit_text("Для начала вам нужно зарегистрироваться.\n\nВыберите роль:",
 										reply_markup=choice_a_role_inline_keyboard)
 
-		@router.callback_query(RegisterFrom.get_role, F.data.in_({"student", "teacher"}))
+		@router.callback_query(RegisterForm.get_role, F.data.in_({"student", "teacher"}))
 		async def on_role_select(call: CallbackQuery, state: FSMContext) -> None:
 			select_role = call.data
 
 			if select_role == "student":
 				await call.message.edit_text("Выберите курс:", reply_markup=choice_a_course_inline_keyboard)
-				await state.set_state(RegisterFrom.get_course)
+				await state.set_state(RegisterForm.get_course)
 			elif select_role == "teacher":
 				await state.clear()  # TODO: Затычка
 				await call.message.edit_text("В разработке...")
 				await call.answer()
 
-		@router.callback_query(RegisterFrom.get_course, F.data.startswith("course_"))
+		@router.callback_query(RegisterForm.get_course, F.data.startswith("course_"))
 		async def student_course_selected(call: CallbackQuery, state: FSMContext) -> None:
 			course_number = int(call.data.split("_")[1])
 			await state.update_data(course_number=course_number)
@@ -95,10 +87,10 @@ class Registration(Handler):
 			groups = [(group.name, group.id_) for group in res]
 
 			await call.message.edit_text("Выберите группу:", reply_markup=group_inline_keyboard(groups))
-			await state.set_state(RegisterFrom.get_group)
+			await state.set_state(RegisterForm.get_group)
 
 
-		@router.callback_query(RegisterFrom.get_group, F.data.startswith("group_"))
+		@router.callback_query(RegisterForm.get_group, F.data.startswith("group_"))
 		async def student_group_selected(call: CallbackQuery, state: FSMContext) -> None:
 			try:
 				spl = call.data.split("_")
@@ -152,10 +144,7 @@ class Registration(Handler):
 			
 			match data:
 				case "back_course":
-					RegisterFrom.get_role.set_parent()
+					pass
 
-	async def enable(self, bot):
-		await super().enable(bot)
-		bot.dispatcher.include_router(self.router)
 
 	
