@@ -52,7 +52,7 @@ class OMSUBot:
     
     async def shutdown(self):
         logging.error("Bot shutting down...")
-        await self.db.shutdown() # блять
+        # await self.db.shutdown()
         logging.error("Bot shutdown success!")
 
 
