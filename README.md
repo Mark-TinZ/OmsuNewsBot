@@ -15,12 +15,29 @@
 5. Start the database
 6. ...
 
-## Install lib:
+## Create venv
 
-### Unix/maxOS
+### Unix/macOS
 
 ```shell
-python -m pip install -r requirements.txt
+python3 -m venv .venv
+```
+```shell
+source .venv/bin/activate
+```
+
+### Windows
+
+```shell
+py -m venv .venv
+```
+
+## Install lib:
+
+### Unix/macOS
+
+```shell
+python3 -m pip install -r requirements.txt
 ```
 
 ### Windows
