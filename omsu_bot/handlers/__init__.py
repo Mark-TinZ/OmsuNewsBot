@@ -7,20 +7,22 @@ from aiogram import Router
 
 
 class Handler:
-    bot = None
+	bot = None
 
-    async def enable(self, bot):
-        self.bot = bot
+	async def enable(self, bot):
+		self.bot = bot
 
-    async def disable(self):
-        self.bot = None
+	async def disable(self):
+		self.bot = None
 
 
 
 class RouterHandler(Handler):
-    router = Router()
+	def __init__(self) -> None:
+		super().__init__()
+		self.router = Router()
 
-    async def enable(self, bot):
-        await super().enable(bot)
-        bot.dispatcher.include_router(self.router)
+	async def enable(self, bot):
+		await super().enable(bot)
+		bot.dispatcher.include_router(self.router)
 

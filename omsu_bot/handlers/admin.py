@@ -26,6 +26,8 @@ class SchedulesFrom(StatesGroup):
 
 class Administration(RouterHandler):
 	def __init__(self):
+		super().__init__()
+		
 		router = self.router
 
 		@router.message(F.text == "Админ-панель")

@@ -27,7 +27,7 @@ class OMSUBot:
         self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
                            cfg.db.database)
 
-        handler_list = [Test()] # Registration(), Administration(),
+        handler_list = [Test(), Registration()] # [Registration(), Administration(),]
         # for handler in omsu_bot.handlers.handlers:
         #     handler_list.append(handler())
 
@@ -35,7 +35,7 @@ class OMSUBot:
 
     async def launch(self):
         try:
-            # await self.db.launch()
+            await self.db.launch()
 
             for h in self.handlers:
                 await h.enable(self)
@@ -52,7 +52,7 @@ class OMSUBot:
     
     async def shutdown(self):
         logging.error("Bot shutting down...")
-        # await self.db.shutdown()
+        await self.db.shutdown()
         logging.error("Bot shutdown success!")
 
 

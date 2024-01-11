@@ -8,14 +8,22 @@ class HandlerState(State):
 
 	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "MarkdownV2", message_handler = None, message_edit_handler = None, message_send_handler = None):
 		super().__init__()
+
+		# handlers
 		self.message_handler = message_handler
 		self.message_edit_handler = message_edit_handler
 		self.message_send_handler = message_send_handler
+
+		# preset
 		self.text = text
 		self.reply_markup = reply_markup
 		self.parse_mode = parse_mode
+
+		# state name (not implemented)
 		self.name = name
 
+	# await request_number.message_edit(self.bot, state, msg)
+	# await request_number.message_edit(self.bot, state, message_id, chat)
 	async def message_edit(self, bot, context: FSMContext, message: Message | int, chat: Chat | int = None, *args, **kwargs):
 		await context.set_state(self)
 
@@ -37,7 +45,7 @@ class HandlerState(State):
 					await message.edit_text(**data)
 
 		else:
-			if not self.text is None:
+			if self.text:
 				if is_raw:
 					await bot.tg.edit_message_text(chat_id=chat_id, message_id=message, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
 				else:
@@ -58,7 +66,7 @@ class HandlerState(State):
 				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, **data)
 
 		else:
-			if not self.text is None:
+			if self.text:
 				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
 
 
