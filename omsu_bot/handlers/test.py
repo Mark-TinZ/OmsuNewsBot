@@ -51,6 +51,8 @@ class TestForm(StatesGroup):
 
 class Test(RouterHandler):
 	def __init__(self):
+		super().__init__()
+		
 		router: Router = self.router
 
 		@router.message(Command("test"))
