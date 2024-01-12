@@ -6,7 +6,7 @@ from aiogram.types import Message, Chat, InlineKeyboardMarkup, ReplyKeyboardMark
 
 class HandlerState(State):
 
-	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "MarkdownV2", message_handler = None, message_edit_handler = None, message_send_handler = None):
+	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", message_handler = None, message_edit_handler = None, message_send_handler = None):
 		super().__init__()
 
 		# handlers
@@ -42,7 +42,7 @@ class HandlerState(State):
 				if is_raw:
 					await bot.tg.edit_message_text(chat_id=chat_id, message_id=message, **data)
 				else:
-					await message.edit_text(**data)
+					await message.edit_text(parse_mode=self.parse_mode, **data)
 
 		else:
 			if self.text:

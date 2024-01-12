@@ -3,24 +3,25 @@ from shutil import which
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-import omsu_bot.data.constants as constants
-from omsu_bot.database.models import Student, User, Group
+import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
+from omsu_bot.database.models import Student, User, Group
 
 
 class RegistrationForm(StatesGroup):
 	
 	greetings_approval = HandlerState(
-		text=constants.greetings_message,
+		text=lang.user_greetings,
 		parse_mode="HTML",
 		reply_markup=
 			InlineKeyboardBuilder()
@@ -28,8 +29,8 @@ class RegistrationForm(StatesGroup):
 				.as_markup()
 	)
 	
-	eula_approval = HandlerState(
-		text=constants.user_eula_message,
+	warning_approval = HandlerState(
+		text=lang.user_registration_warning,
 		reply_markup=
 			InlineKeyboardBuilder()
 				.button(text="Принять", callback_data="approve")
@@ -38,8 +39,8 @@ class RegistrationForm(StatesGroup):
 
 	role_selection = HandlerState(
 		text=(
-			"Для начала вам нужно зарегистрироваться...\n\n"
-			"Выберите роль:"
+			"📝 Для начала вам нужно зарегистрироваться...\n\n"
+			"Выберите *роль*:"
 		),
 		reply_markup=
 			InlineKeyboardBuilder()
@@ -54,7 +55,7 @@ class RegistrationForm(StatesGroup):
 
 	course_selection = HandlerState(
 		text=(
-			"Выберите курс обучения:"
+			"👨‍🎓 *Студент*\nВыберите *курс* обучения:"
 		),
 		reply_markup=
 			InlineKeyboardBuilder()
@@ -68,9 +69,15 @@ class RegistrationForm(StatesGroup):
 
 	@staticmethod
 	async def group_selection_message(bot, state: FSMContext):
-		data = await state.get_data()
-		course_number = data.course_number
+		if not bot.db.is_online():
+			return dict(
+				text=lang.user_error_database_connection
+			)
 
+		data = await state.get_data()
+		course_number = data["course_number"]
+
+		
 		sess: sorm.Session = bot.db.session
 		
 		with sess.begin():
@@ -78,26 +85,26 @@ class RegistrationForm(StatesGroup):
 
 		builder = InlineKeyboardBuilder()
 		for group in res:
-			builder.button(text=group.name, callback_data=group.id_)
+			builder.button(text=group.name, callback_data=f"{group.id_}/{group.name}")
 
 		builder.adjust(2, repeat=True)
 
 		return dict(
-			text=f"Курс №{course_number}\nВыберите группу:",
+			text=f"👨‍🎓 *Студент*\n📚 *Курс: №{course_number}*\n\nВыберите *группу*:",
 			reply_markup=builder.as_markup()
 		)
 
-	group_selection = HandlerState()
+	group_selection = HandlerState(message_handler=group_selection_message)
 
 
 	@staticmethod
 	async def data_approval_message(bot, state: FSMContext):
 		data = await state.get_data()
-		course_number = data.course_number
-		group_name = data.group_name
+		course_number = data["course_number"]
+		group_name = data["group_name"]
 
 		return dict(
-			text=f"Курс №{course_number}\nГруппа: {group_name}\n\nВсё верно?",
+			text=f"👨‍🎓 *Студент*\n📚 *Курс: №{course_number}*\n💼 *Группа: {group_name}*\n\nВсё верно?",
 			reply_markup=
 				InlineKeyboardBuilder()
 				.button(text="Изменить", callback_data="change")
@@ -115,7 +122,7 @@ class Registration(RouterHandler):
 	def __init__(self) -> None:
 		super().__init__()
 		
-		router = self.router
+		router: Router = self.router
 
 		@router.message(CommandStart())
 		async def handle_start(msg: Message, state: FSMContext) -> None:
@@ -127,7 +134,7 @@ class Registration(RouterHandler):
 						user: User = sess.execute(sa.select(User).where(User.tg_id == msg.from_user.id)).scalar_one_or_none()
 				else:
 					await state.clear()
-					await msg.answer("Error BD")
+					await msg.answer(text=lang.user_error_database_connection)
 					return
 
 				if user:
@@ -137,7 +144,95 @@ class Registration(RouterHandler):
 		
 		@router.callback_query(RegistrationForm.greetings_approval)
 		async def handle_greetings_approval(call: CallbackQuery, state: FSMContext):
-			RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
+			if call.data == "approve":
+				await RegistrationForm.warning_approval.message_edit(self.bot, state, call.message)
+		
+
+		@router.callback_query(RegistrationForm.warning_approval)
+		async def handle_eula_approval(call: CallbackQuery, state: FSMContext):
+			if call.data == "approve":
+				await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
+		
+
+		@router.callback_query(RegistrationForm.role_selection)
+		async def handle_role_selection(call: CallbackQuery, state: FSMContext):
+			if call.data == "student":
+				await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
+			else:
+				await call.answer("В процессе разработки")
+		
+
+		@router.callback_query(RegistrationForm.course_selection)
+		async def handle_course_selection(call: CallbackQuery, state: FSMContext):
+			async with ChatActionSender.typing(chat_id=call.message.chat.id, bot=self.bot.tg):
+				if not call.data.isdigit():
+					return
+				
+				course_number = int(call.data)
+				await state.update_data(course_number=course_number)
+				await RegistrationForm.group_selection.message_edit(self.bot, state, call.message)
+		
+		
+		@router.callback_query(RegistrationForm.group_selection)
+		async def handle_group_selection(call: CallbackQuery, state: FSMContext):
+			c = call.data
+			try:
+				spl: int = c.find("/")
+				group_id: int = int(c[:spl])
+				group_name: str = c[(spl+1):]
+			except:
+				return
+			
+			await state.update_data(group_id=group_id, group_name=group_name)
+
+			await RegistrationForm.data_approval.message_edit(self.bot, state, call.message)
+		
+
+		@router.callback_query(RegistrationForm.data_approval)
+		async def handle_data_approval(call: CallbackQuery, state: FSMContext):
+			async with ChatActionSender.typing(chat_id=call.message.chat.id, bot=self.bot.tg):
+				c = call.data
+
+				if c == "change":
+					await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
+					return
+				
+				if c != "confirm":
+					return
+				
+				## approved ##
+
+				if not self.bot.db.is_online():
+					await call.message.edit_text(text=lang.user_error_database_connection)
+					return
+				
+				data = await state.get_data()
+				group_id = data["group_id"]
+
+				await state.clear()
+
+				success = False
+
+				tg_id = call.from_user.id
+				sess: sorm.Session = self.bot.db.session
+				with sess.begin():
+					group = sess.execute(sa.select(Group).where(Group.id_ == group_id)).scalar_one_or_none()
+					if group:
+						pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
+						if pk:
+							student = Student(user_id=pk[0], group_id=group_id)
+							sess.add(student)
+							success = False
+				
+				if success:
+					await call.message.edit_text("Вы успешно зарегистрированы!")
+				else:
+					await call.message.edit_text("При регистрации возникла ошибка...")
+					async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
+						video_note = FSInputFile("media/video/cat-huh.mp4")
+						await call.message.answer_video_note(video_note)
+			
+			
 
 		# @router.message(CommandStart())
 		# async def handle_start(message: Message, state: FSMContext) -> None:
@@ -224,21 +319,21 @@ class Registration(RouterHandler):
 		# async def student_data_confirmed(call: CallbackQuery, state: FSMContext) -> None:
 		# 	# await call.message.delete()
 
-		# 	data = await state.get_data()
-		# 	group_id = data.get("group_id", None)
+			# data = await state.get_data()
+			# group_id = data.get("group_id", None)
 
-		# 	await state.clear()
+			# await state.clear()
 
-		# 	success = False
+			# success = False
 
-		# 	tg_id = call.from_user.id
-		# 	sess: sorm.Session = self.bot.db.session
-		# 	with sess.begin():
-		# 		pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
-		# 		if pk:
-		# 			student = Student(user_id=pk[0], group_id=group_id)
-		# 			sess.add(student)
-		# 			success = True
+			# tg_id = call.from_user.id
+			# sess: sorm.Session = self.bot.db.session
+			# with sess.begin():
+			# 	pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
+			# 	if pk:
+			# 		student = Student(user_id=pk[0], group_id=group_id)
+			# 		sess.add(student)
+			# 		success = True
 
 		# 	if success:
 		# 		await call.message.edit_text("Отлично! Вы успешно зарегистрированы. Приятного пользования!")
