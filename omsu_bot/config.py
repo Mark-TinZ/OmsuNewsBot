@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from environs import Env
+import environs
 
 
 @dataclass
@@ -46,7 +47,10 @@ class Config:
 
 def load_config(path: str = None) -> Config:
     env = Env()
-    env.read_env(path)
+	
+    env.read_env(path, override=True)
+
+
 
     return Config(
         bot=BotConfig.from_env(env),

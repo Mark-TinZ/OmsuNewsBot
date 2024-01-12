@@ -8,6 +8,9 @@ class Database:
 	def __init__(self, driver: str, username: str, password: str, host: str, port: int, database: str) -> None:
 		self.url = sa.URL(driver, username, password, host, port, database, dict())
 		self.engine = sa.create_engine(self.url)
+	
+	def is_online(self):
+		return not self._session is None
 
 	@property
 	def session(self) -> sorm.Session | None:

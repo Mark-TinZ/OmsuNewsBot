@@ -3,9 +3,9 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from omsu_bot.config import load_config
 
 
+# 
 def menu_keyboard(tg_id: int) -> ReplyKeyboardMarkup:
-    admins = load_config().tg_bot.admin_ids # Проблема в том, что надо всё это говно стирать
-
+    admins = load_config().tg_bot.admin_ids
     if tg_id not in admins:
         keyboard = ReplyKeyboardMarkup(
             keyboard=[
