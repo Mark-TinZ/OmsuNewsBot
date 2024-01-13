@@ -6,7 +6,7 @@ from aiogram.types import Message, Chat, InlineKeyboardMarkup, ReplyKeyboardMark
 
 class HandlerState(State):
 
-	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", message_handler = None, message_edit_handler = None, message_send_handler = None):
+	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", message_handler = None, message_edit_handler = None, message_send_handler = None, previous_state = None):
 		super().__init__()
 
 		# handlers
@@ -21,6 +21,7 @@ class HandlerState(State):
 
 		# state name (not implemented)
 		self.name = name
+		self.previous_state = previous_state
 
 	# await request_number.message_edit(self.bot, state, msg)
 	# await request_number.message_edit(self.bot, state, message_id, chat)
@@ -40,7 +41,7 @@ class HandlerState(State):
 
 			if data:
 				if is_raw:
-					await bot.tg.edit_message_text(chat_id=chat_id, message_id=message, **data)
+					await bot.tg.edit_message_text(chat_id=chat_id, message_id=message, parse_mode=self.parse_mode, **data)
 				else:
 					await message.edit_text(parse_mode=self.parse_mode, **data)
 
@@ -63,7 +64,7 @@ class HandlerState(State):
 			data = await self.message_handler(bot, context, *args, **kwargs)
 
 			if data:
-				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, **data)
+				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, parse_mode=self.parse_mode, **data)
 
 		else:
 			if self.text:
