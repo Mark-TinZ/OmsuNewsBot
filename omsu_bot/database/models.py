@@ -30,6 +30,7 @@ class Group(Base):
 	id_ = sa.Column("id", sa.Integer, primary_key=True)
 	name = sa.Column(sa.String(256), nullable=False)
 	course_number = sa.Column(sa.Integer, nullable=False)
+	is_enabled = sa.Column(sa.Boolean, nullable=False, default=True)
 
 class Student(Base):
 	__tablename__ = "student"
@@ -47,7 +48,7 @@ class Subject(Base):
 	name = sa.Column(sa.String(256), nullable=False)
 	course_number =  sa.Column(sa.ARRAY(sa.Integer), nullable=False)
 	group_id = sa.Column(sa.ARRAY(sa.Integer), nullable=False)
-	teacher_id = sa.Column(sa.ARRAY(sa.Integer) , nullable=False)
+	teacher_id = sa.Column(sa.ARRAY(sa.Integer) , nullable=True)
 
 
 class Lesson(Base):
