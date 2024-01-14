@@ -5,6 +5,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from omsu_bot.config import Config
 from omsu_bot.database import Database
 from omsu_bot.handlers.admin import Administration
+from omsu_bot.handlers.menu import Menu
+from omsu_bot.handlers.schedule import Schedule
+from omsu_bot.handlers.settings import Settings
 from omsu_bot.handlers.registration import Registration
 from omsu_bot.handlers.test import Test
 from omsu_bot.services.broadcaster import broadcast
@@ -27,7 +30,7 @@ class OMSUBot:
         self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
                            cfg.db.database)
 
-        handler_list = [Test(), Registration()] # [Registration(), Administration(),]
+        handler_list = [Registration(), Menu(), Settings(), Schedule()] # [Registration(), Administration(),]
         # for handler in omsu_bot.handlers.handlers:
         #     handler_list.append(handler())
 

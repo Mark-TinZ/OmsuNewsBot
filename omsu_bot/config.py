@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-
+from datetime import date, datetime
 from environs import Env
 import environs
 
@@ -40,8 +40,19 @@ class BotConfig:
 
 
 @dataclass
+class ScheduleConfig():
+    academic_start: date
+    @staticmethod
+    def from_env(env: Env):
+        academic_start = datetime.strptime(env.str("SCH_ACADEMIC_START"), "%d.%m.%Y").date()
+        print(academic_start)
+        return ScheduleConfig(academic_start=academic_start)
+
+
+@dataclass
 class Config:
     bot: BotConfig
+    schedule: ScheduleConfig
     db: Optional[DbConfig] = None
 
 
@@ -54,5 +65,6 @@ def load_config(path: str = None) -> Config:
 
     return Config(
         bot=BotConfig.from_env(env),
-        db=DbConfig.from_env(env)
+        db=DbConfig.from_env(env),
+        schedule=ScheduleConfig.from_env(env)
     )
