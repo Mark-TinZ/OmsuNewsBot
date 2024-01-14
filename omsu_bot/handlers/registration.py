@@ -1,19 +1,18 @@
-import logging
-
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, ReplyKeyboardBuilder
+from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
-from omsu_bot.handlers import RouterHandler, menu
+from omsu_bot.handlers import RouterHandler
+from omsu_bot.handlers.menu import MenuForm
 from omsu_bot.database.models import Student, Teacher, User, Group
 
 
@@ -63,7 +62,8 @@ class RegistrationForm(StatesGroup):
 	)
 
 
-	async def teacher_approval_message(bot, state: FSMContext):
+	async def teacher_approval_message(self, bot, state: FSMContext):
+		await state.set_state(self)
 		data = await state.get_data()
 		return dict(
 			text=f"👨‍🏫 *Преподаватель*\n*{data['teacher_name']}*\n\nПодтвердите, что *это вы*",
@@ -95,7 +95,8 @@ class RegistrationForm(StatesGroup):
 	)
 
 	@staticmethod
-	async def group_selection_message(bot, state: FSMContext):
+	async def group_selection_message(self, bot, state: FSMContext):
+		await state.set_state(self)
 		if not bot.db.is_online():
 			return dict(
 				text=lang.user_error_database_connection
@@ -126,7 +127,8 @@ class RegistrationForm(StatesGroup):
 
 
 	@staticmethod
-	async def data_approval_message(bot, state: FSMContext):
+	async def data_approval_message(self, bot, state: FSMContext):
+		await state.set_state(self)
 		data = await state.get_data()
 		course_number = data["course_number"]
 		group_name = data["group_name"]
@@ -174,7 +176,7 @@ class Registration(RouterHandler):
 						user: User = sess.execute(sa.select(User).where(User.tg_id == sender.id)).scalar_one_or_none()
 
 				if user:
-					await menu.MenuForm.main_menu.message_send(self.bot, state, msg.chat, msg.message_id, user=sender)
+					await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id, actor=sender)
 				else:
 					await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
 		
@@ -249,7 +251,7 @@ class Registration(RouterHandler):
 			if c != "confirm":
 				return
 
-			if not self.bot.db.is_online():
+			if not self.bot. db.is_online():
 				await call.message.edit_text(text=lang.user_error_database_connection)
 				return
 
@@ -272,7 +274,7 @@ class Registration(RouterHandler):
 			if success:
 				await state.clear()
 				await call.message.edit_text(
-					text=f"👨‍🏫 *Преподаватель*\n*{name}*\n\nВы успешно зарегистрированы!",
+					text=f"👨‍🏫 *Преподаватель*\n*{name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
 					parse_mode="Markdown"
 				)
 			else:
@@ -361,19 +363,14 @@ class Registration(RouterHandler):
 							success = True
 				
 				if success:
-					await call.message.delete()
-					await call.message.answer(
-						text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!",
-						parse_mode="Markdown",
-						reply_markup=
-							ReplyKeyboardBuilder()
-								.button(text="Главное меню")
-								.as_markup(resize_keyboard=True)
+					await call.message.edit_text(
+						text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
+						parse_mode="Markdown"
 					)
 				else:
 					await call.message.edit_text("При регистрации возникла ошибка...")
 					async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
-						video_note = FSInputFile("media/video/cat-huh.mp4")
+						video_note = FSInputFile("media/video/error-bd.mp4")
 						await call.message.answer_video_note(video_note)
 		
 

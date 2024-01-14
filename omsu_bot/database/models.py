@@ -3,6 +3,8 @@ from tokenize import group
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
+import sqlalchemy.dialects.postgresql as postgresql
+
 Base = sorm.declarative_base()
 
 class User(Base):
@@ -57,11 +59,11 @@ class Lesson(Base):
 	id_ = sa.Column("id", sa.Integer, primary_key=True)
 	subject_id = sa.Column(sa.ForeignKey(Subject.id_), nullable=False)
 	lesson_number = sa.Column(sa.Integer, nullable=False)
-	teacher_id = sa.Column(sa.ForeignKey(Teacher.id_), nullable=False)
+	teacher_id = sa.Column(sa.ForeignKey(Teacher.id_), nullable=True)
 	group_id = sa.Column(sa.ForeignKey(Group.id_), nullable=False)
 	weekday = sa.Column(sa.Integer, nullable=False)
-	academic_weeks = sa.Column(sa.ARRAY(sa.Integer), nullable=False)
-	room = sa.Column(sa.Integer, nullable=False)
+	academic_weeks = sa.Column(postgresql.ARRAY(sa.Integer), nullable=False)
+	room = sa.Column(sa.String, nullable=False)
 	type_lesson = sa.Column(sa.String, nullable=False)
 
 

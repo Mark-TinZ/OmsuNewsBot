@@ -26,7 +26,6 @@ class HandlerState(State):
 	# await request_number.message_edit(self.bot, state, msg)
 	# await request_number.message_edit(self.bot, state, message_id, chat)
 	async def message_edit(self, bot, context: FSMContext, message: Message | int, chat: Chat | int = None, *args, **kwargs):
-		await context.set_state(self)
 
 		is_raw = isinstance(message, int)
 		chat_id = None
@@ -34,10 +33,10 @@ class HandlerState(State):
 			chat_id = chat if isinstance(chat, int) else chat.id
 
 		if self.message_edit_handler:
-			await self.message_edit_handler(bot, context, message, chat, *args, **kwargs)
+			await self.message_edit_handler(self, bot, context, message, chat, *args, **kwargs)
 
 		elif self.message_handler:
-			data = await self.message_handler(bot, context, *args, **kwargs)
+			data = await self.message_handler(self, bot, context, *args, **kwargs)
 
 			if data:
 				if is_raw:
@@ -46,6 +45,7 @@ class HandlerState(State):
 					await message.edit_text(parse_mode=self.parse_mode, **data)
 
 		else:
+			await context.set_state(self)
 			if self.text:
 				if is_raw:
 					await bot.tg.edit_message_text(chat_id=chat_id, message_id=message, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
@@ -53,20 +53,20 @@ class HandlerState(State):
 					await message.edit_text(text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
 
 	async def message_send(self, bot, context: FSMContext, chat: Chat | int, reply_to_message_id: int = None, *args, **kwargs):
-		await context.set_state(self)
 
 		chat_id = chat if isinstance(chat, int) else chat.id
 
 		if self.message_send_handler:
-			await self.message_send_handler(bot, chat, context, reply_to_message_id, *args, **kwargs)
+			await self.message_send_handler(self, bot, chat, context, reply_to_message_id, *args, **kwargs)
 
 		elif self.message_handler:
-			data = await self.message_handler(bot, context, *args, **kwargs)
+			data = await self.message_handler(self, bot, context, *args, **kwargs)
 
 			if data:
 				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, parse_mode=self.parse_mode, **data)
 
 		else:
+			await context.set_state(self)
 			if self.text:
 				await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
 
