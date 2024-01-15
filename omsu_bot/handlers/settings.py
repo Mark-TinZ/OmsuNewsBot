@@ -14,19 +14,21 @@ from omsu_bot.database.models import Student, Group, Teacher, User
 
 
 class SettingsForm(StatesGroup):
-	async def settings_message(self, bot, context: FSMContext, actor: types.User = None):
+	@staticmethod
+	async def settings_message(self, bot, context: FSMContext):
 		await context.set_state(self)
 
 		if not bot.db.is_online():
 			return dict(text=lang.user_error_database_connection)
-		
+
+		tg_id = context.key.user_id
 
 		text = "⚙ *Настройки*\n\n"
 
 		sess: sorm.Session = bot.db.session
 
 		with sess.begin(): 
-			user: User | None = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
+			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
 				return dict(text=lang.user_error_auth_unknown)

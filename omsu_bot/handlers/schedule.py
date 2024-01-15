@@ -38,17 +38,21 @@ lesson_time = {
 
 class ScheduleForm(StatesGroup):
 
-	async def schedule_message(self, bot, context: FSMContext, actor: types.User = None, tomorrow=False):
-		await context.set_state(self)
+	@staticmethod
+	async def schedule_message(self, bot, context: FSMContext, tomorrow=False):
 		if not bot.db.is_online():
+			await context.clear()
 			return dict(
 				text=lang.user_error_database_connection
 			)
+		await context.set_state(self)
+
+		tg_id = context.key.user_id
 
 		sess: sorm.Session = bot.db.session
 
 		with sess.begin(): 
-			user: User | None = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
+			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
 				return dict(
@@ -95,6 +99,8 @@ class ScheduleForm(StatesGroup):
 				empty = True
 
 				for lesson, subject, teacher in lessons:
+					empty = False
+
 					num = lesson.lesson_number
 					lesson_bounds = lesson_time.get(num, None)
 					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
@@ -109,8 +115,6 @@ class ScheduleForm(StatesGroup):
 						text += f" - {lesson_bounds}\n"
 					if teacher:
 						text += f" - {teacher.name}\n"
-				else:
-					empty = False
 				
 				if empty:
 					text += " 😄 Занятий нет..."
@@ -132,6 +136,8 @@ class ScheduleForm(StatesGroup):
 				empty = True
 
 				for lesson, subject, group in lessons:
+					empty = False
+
 					num = lesson.lesson_number
 					lesson_bounds = lesson_time.get(num, None)
 					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
@@ -147,8 +153,6 @@ class ScheduleForm(StatesGroup):
 					
 					if group:
 						text += f" - {group.name}\n"
-				else:
-					empty = False
 				
 				if empty:
 					text += " 😄 Занятий нет..."
@@ -183,8 +187,7 @@ class Schedule(RouterHandler):
 
 			match call.data:
 				case "show_tomorrow":
-					await msg.edit_reply_markup()
-					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, actor=call.from_user, tomorrow=True)
+					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, tomorrow=True)
 				case _:
 					await call.answer(text="В разработке...")
 				

@@ -22,15 +22,25 @@ class TestForm(StatesGroup):
 
 
 	@staticmethod
-	async def request_hello_edit(bot, context: FSMContext, msg: Message, chat: Chat):
-		await context.update_data(message_id=msg.message_id)
-		await msg.edit_text("Скажи **привет**")
+	async def request_hello_message(self, bot, context: FSMContext, ):
+		await context.set_state(self)
+		return dict(
+			text="Скажи **привет**",
+			reply_markup=self.reply_markup
+		)
 
-	request_hello = HandlerState(message_edit_handler=request_hello_edit)
+	request_hello = HandlerState(
+		message_handler=request_hello_message,
+		reply_markup=
+			InlineKeyboardBuilder()
+				.button(text="Отмена", callback_data="cancel")
+				.as_markup()
+	)
 
 
 	@staticmethod
-	async def request_number_message(bot, context: FSMContext):
+	async def request_number_message(self, bot, context: FSMContext):
+		await context.set_state(self)
 		return dict(
 			text="Выберите число",
 			reply_markup=
@@ -70,12 +80,8 @@ class Test(RouterHandler):
 
 		@router.message(TestForm.request_hello)
 		async def request_hello_response(msg: Message, state: FSMContext) -> None:
-			data = await state.get_data()
-			message_id = data.get("message_id", None)
-			if message_id and msg.text.lower() == "привет":
-				del data["message_id"]
-				await state.update_data(data=data)
-				await TestForm.request_number.message_edit(self.bot, state, message_id, msg.chat)
+			if msg.text.lower() == "привет":
+				await TestForm.request_number.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
 		@router.callback_query(TestForm.request_number)
 		async def request_number_response(call: CallbackQuery, state: FSMContext) -> None:
