@@ -1,4 +1,5 @@
 
+from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, Chat, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, ForceReply
@@ -8,7 +9,7 @@ from omsu_bot import utils
 
 class HandlerState(State):
 
-	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", register_context: bool = True, register_context_safe: bool = False, message_handler = None, message_edit_handler = None, message_send_handler = None, previous_state = None):
+	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", register_context: bool = True, register_context_safe: bool = False, disable_notification: bool = True, message_handler = None, message_edit_handler = None, message_send_handler = None, previous_state = None):
 		super().__init__()
 
 		# handlers
@@ -26,6 +27,8 @@ class HandlerState(State):
 		# state name (not implemented)
 		self.name = name
 		self.previous_state = previous_state
+
+		self.disable_notification = disable_notification
 
 	# await request_number.message_edit(self.bot, state, msg)
 	# await request_number.message_edit(self.bot, state, message_id, chat)
@@ -56,6 +59,8 @@ class HandlerState(State):
 				else:
 					await message.edit_text(text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
 
+
+
 	async def message_send(self, bot, context: FSMContext, chat: Chat | int, reply_to_message_id: int = None, *args, **kwargs):
 
 		chat_id = chat if isinstance(chat, int) else chat.id
@@ -67,9 +72,23 @@ class HandlerState(State):
 			data = await self.message_handler(self, bot, context, *args, **kwargs)
 
 			if data:
-				msg = await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, parse_mode=self.parse_mode, **data)
-				if data.get("register_context", True):
-					await utils.register_context(context, msg, safe=data.get("register_context_safe", False))
+				register_context = data.get("register_context", self.register_context)
+				register_context_safe = data.get("register_context", self.register_context_safe)
+				try:
+					del data["register_context"]
+					del data["register_context_safe"]
+				except KeyError: pass
+
+				tg: Bot = bot.tg
+				msg = await tg.send_message(
+					chat_id=chat_id, 
+					reply_to_message_id=reply_to_message_id, 
+					parse_mode=self.parse_mode, 
+					**data
+				)
+				
+				if register_context:
+					await utils.register_context(context, msg, safe=register_context_safe)
 				return msg
 
 		else:

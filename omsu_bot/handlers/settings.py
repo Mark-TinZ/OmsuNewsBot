@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from omsu_bot import utils
 
 from omsu_bot.fsm import HandlerState
 import omsu_bot.data.language as lang
@@ -86,7 +87,8 @@ class Settings(RouterHandler):
 
 		@router.callback_query(SettingsForm.settings)
 		async def handle_settings(call: CallbackQuery, state: FSMContext):
-			
+			if await utils.throttling_assert(state): return
+
 			if not self.bot.db.is_online():
 				await call.message.edit_text(text=lang.user_error_auth_unknown)
 			

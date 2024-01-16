@@ -10,6 +10,7 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
+from omsu_bot import utils
 
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
@@ -159,17 +160,16 @@ class ScheduleForm(StatesGroup):
 				
 			return dict(
 				text=text,
-				reply_markup=self.reply_markup
+				reply_markup=self.reply_markup,
+				register_context=True
 			)
-					
 		
 		
 	schedule = HandlerState(
 		message_handler=schedule_message,
+		register_context=False,
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="На завтра", callback_data="show_tomorrow")
-				.button(text="На неделю", callback_data="show_week")
 				.as_markup()
 	)
 
@@ -183,10 +183,13 @@ class Schedule(RouterHandler):
 
 		@router.callback_query(ScheduleForm.schedule)
 		async def handle_schedule(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+			
 			msg = call.message
 
 			match call.data:
 				case "show_tomorrow":
+					await call.answer()
 					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, tomorrow=True)
 				case _:
 					await call.answer(text="В разработке...")

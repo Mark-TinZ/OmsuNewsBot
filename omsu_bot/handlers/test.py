@@ -1,9 +1,11 @@
+import logging
 from aiogram import Router, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, Chat
 
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from omsu_bot import utils
 
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
@@ -67,6 +69,10 @@ class Test(RouterHandler):
 
 		@router.message(Command("test"))
 		async def handle_test(msg: Message, state: FSMContext) -> None:
+			if await utils.throttling_assert(state):
+				logging.warning("ASSERTED")
+				return
+			logging.warning("RESPONSE")
 			await TestForm.request_approval.message_send(self.bot, state, msg.chat, msg.message_id)
 
 		@router.callback_query(TestForm.request_approval)
