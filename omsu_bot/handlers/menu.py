@@ -7,6 +7,7 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.utils.chat_action import ChatActionSender
+from omsu_bot import utils
 
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
@@ -40,22 +41,21 @@ class MenuForm(StatesGroup):
 		with sess.begin():
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
 
-			if user:
-				if user.role_id == "student":
-					student: Student = sess.execute(sa.select(Student).where(Student.user_id == user.id_)).scalar_one_or_none()
-					if not student:
-						return dict(text=lang.user_error_database_logic)
+			if not user:
+				return dict(text=lang.user_error_auth_unknown)
 
-					if student.is_moderator:
-							reply_menu.row(text="Админ-меню", callback_data="main_menu_admin")
-				elif user.role_id == "teacher":
-					teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
-					if not teacher:
-						return dict(text=lang.user_error_database_logic)
-			else:
-				return dict(
-					text=lang.user_error_auth_unknown
-				)
+			if user.role_id == "student":
+				student: Student = sess.execute(sa.select(Student).where(Student.user_id == user.id_)).scalar_one_or_none()
+				if not student:
+					return dict(text=lang.user_error_database_logic)
+
+				if student.is_moderator:
+						reply_menu.row(text="Админ-меню", callback_data="main_menu_admin")
+			elif user.role_id == "teacher":
+				teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
+				if not teacher:
+					return dict(text=lang.user_error_database_logic)
+		
 		
 		
 		return dict(
@@ -77,16 +77,18 @@ class Menu(RouterHandler):
 
 		@router.message(F.text.lower() == "расписание")
 		async def handle_schedule(msg: types.Message, state: FSMContext):
-			async with ChatActionSender.typing(chat_id=msg.chat.id, bot=self.bot.tg):
-				await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, actor=msg.from_user)
+			if await utils.throttling_assert(state): return
+			
+			await ScheduleForm.schedule.message_send(self.bot, state, msg.chat)
 
 		@router.message(F.text.lower() == "настройки")
 		async def handle_setting(msg: types.Message, state: FSMContext):
-			async with ChatActionSender.typing(chat_id=msg.chat.id, bot=self.bot.tg):
-				await SettingsForm.settings.message_send(self.bot, state, msg.chat, actor=msg.from_user)
+			if await utils.throttling_assert(state): return
+			
+			await SettingsForm.settings.message_send(self.bot, state, msg.chat)
 
 		@router.message(F.text.lower() == "о боте")
 		async def handle_about(msg: types.Message, state: FSMContext):
-			async with ChatActionSender.upload_video_note(chat_id=msg.chat.id, bot=self.bot.tg):
-				video_note = types.FSInputFile("media/video/dragon-dance.mp4")
-				await msg.answer_video_note(video_note)
+			if await utils.throttling_assert(state): return
+			
+			await msg.answer_video_note(types.FSInputFile("media/video/dragon-dance.mp4"))

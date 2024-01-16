@@ -24,7 +24,7 @@ class Administration(RouterHandler):
 		router: Router = self.router
 
 
-
+		# типа не вдупляю
 
 		# @router.message(F.text == "Админ-панель")
 		# async def menu_admin(self, message: Message, state: FSMContext) -> None:

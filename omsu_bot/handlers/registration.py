@@ -1,3 +1,4 @@
+import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
@@ -8,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
+from omsu_bot import utils
 
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
@@ -159,7 +161,8 @@ class Registration(RouterHandler):
 
 		@router.message(CommandStart())
 		async def handle_start(msg: Message, state: FSMContext) -> None:
-
+			if await utils.throttling_assert(state): return
+			
 			if not self.bot.db.is_online():
 				await state.clear()
 				await msg.answer(text=lang.user_error_database_connection)
@@ -183,33 +186,43 @@ class Registration(RouterHandler):
 		@router.callback_query(RegistrationForm.greetings_approval)
 		async def handle_greetings_approval(call: CallbackQuery, state: FSMContext):
 			if call.data == "approve":
+				await call.answer()
 				await RegistrationForm.warning_approval.message_edit(self.bot, state, call.message)
 		
 
 		@router.callback_query(RegistrationForm.warning_approval)
 		async def handle_eula_approval(call: CallbackQuery, state: FSMContext):
 			if call.data == "approve":
+				await call.answer()
 				await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
 		
 
 		@router.callback_query(RegistrationForm.role_selection)
 		async def handle_role_selection(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+			
+			await call.answer()
+
 			match call.data:
 				case "student":
 					await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
 				case "teacher":
 					await RegistrationForm.teacher_auth.message_edit(self.bot, state, call.message)
-				case _:
-					await call.answer("В процессе разработки")
 		
 		@router.callback_query(RegistrationForm.teacher_auth)
 		async def handle_teacher_auth_call(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+			
+			await call.answer()
+			
 			if call.data == "return":
 				await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
 				return
 		
 		@router.message(RegistrationForm.teacher_auth)
 		async def handle_teacher_auth(msg: Message, state: FSMContext):
+			if await utils.throttling_assert(state, count=1, freq=3.0): return
+			
 			if not msg.text:
 				return
 
@@ -231,18 +244,21 @@ class Registration(RouterHandler):
 				await state.update_data(teacher_name=name, teacher_authkey=msg.text)
 				await RegistrationForm.teacher_approval.message_send(self.bot, state, chat=msg.chat, reply_to_message_id=msg.message_id)
 			else:
-				await msg.answer(
+				await msg.answer_video_note(FSInputFile("media/video/cat-huh.mp4"))
+				ans = await msg.answer(
 					text="👨‍🏫 *Преподаватель*\n\n*При регистрации возникла ошибка...*\nВозможно вы ввели *несуществующий ключ авторизации*\nПроверьте и отправьте ключ ещё раз",
 					parse_mode="Markdown",
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
-				async with ChatActionSender.upload_video_note(chat_id=msg.chat.id, bot=self.bot.tg):
-					video_note = FSInputFile("media/video/cat-huh.mp4")
-					await msg.answer_video_note(video_note)
+				await utils.register_context(state, ans)
 		
 
 		@router.callback_query(RegistrationForm.teacher_approval)
 		async def handle_teacher_approval(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+
+			await call.answer()
+
 			c = call.data
 			if c == "change":
 				await RegistrationForm.teacher_auth.message_edit(self.bot, state, call.message)
@@ -292,6 +308,10 @@ class Registration(RouterHandler):
 
 		@router.callback_query(RegistrationForm.course_selection)
 		async def handle_course_selection(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+			
+			await call.answer()
+			
 			if call.data == "return":
 				await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
 				return
@@ -307,6 +327,10 @@ class Registration(RouterHandler):
 		
 		@router.callback_query(RegistrationForm.group_selection)
 		async def handle_group_selection(call: CallbackQuery, state: FSMContext):
+			if await utils.throttling_assert(state): return
+			
+			await call.answer()
+			
 			if call.data == "return":
 				await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
 				return
@@ -326,52 +350,53 @@ class Registration(RouterHandler):
 
 		@router.callback_query(RegistrationForm.data_approval)
 		async def handle_data_approval(call: CallbackQuery, state: FSMContext):
-			async with ChatActionSender.typing(chat_id=call.message.chat.id, bot=self.bot.tg):
-				c = call.data
+			if await utils.throttling_assert(state): return
+			
+			await call.answer()
+			
+			c = call.data
 
-				if c == "change":
-					await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
-					return
-				
-				if c != "confirm":
-					return
-				
-				## approved ##
+			if c == "change":
+				await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
+				return
+			
+			if c != "confirm":
+				return
+			
+			## approved ##
 
-				if not self.bot.db.is_online():
-					await call.message.edit_text(text=lang.user_error_database_connection)
-					return
-				
-				data = await state.get_data()
-				group_id = data["group_id"]
-				group_name = data["group_name"]
-				course_number = data["course_number"]
+			if not self.bot.db.is_online():
+				await call.message.edit_text(text=lang.user_error_database_connection)
+				return
+			
+			data = await state.get_data()
+			group_id = data["group_id"]
+			group_name = data["group_name"]
+			course_number = data["course_number"]
 
-				await state.clear()
+			await state.clear()
 
-				success = False
+			success = False
 
-				tg_id = call.from_user.id
-				sess: sorm.Session = self.bot.db.session
-				with sess.begin():
-					group = sess.execute(sa.select(Group).where(Group.id_ == group_id, Group.is_enabled == True)).scalar_one_or_none()
-					if group:
-						pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
-						if pk:
-							student = Student(user_id=pk[0], group_id=group_id)
-							sess.add(student)
-							success = True
-				
-				if success:
-					await call.message.edit_text(
-						text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
-						parse_mode="Markdown"
-					)
-				else:
-					await call.message.edit_text("При регистрации возникла ошибка...")
-					async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
-						video_note = FSInputFile("media/video/error-bd.mp4")
-						await call.message.answer_video_note(video_note)
+			tg_id = call.from_user.id
+			sess: sorm.Session = self.bot.db.session
+			with sess.begin():
+				group = sess.execute(sa.select(Group).where(Group.id_ == group_id, Group.is_enabled == True)).scalar_one_or_none()
+				if group:
+					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
+					if pk:
+						student = Student(user_id=pk[0], group_id=group_id)
+						sess.add(student)
+						success = True
+			
+			if success:
+				await call.message.edit_text(
+					text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
+					parse_mode="Markdown"
+				)
+			else:
+				await call.message.edit_text("При регистрации возникла ошибка...")
+				await call.message.answer_video_note(FSInputFile("media/video/error-bd.mp4"))
 		
 
 
