@@ -170,6 +170,7 @@ class ScheduleForm(StatesGroup):
 		register_context=False,
 		reply_markup=
 			InlineKeyboardBuilder()
+				.button(text="На завтра", callback_data="show_tomorrow")
 				.as_markup()
 	)
 
