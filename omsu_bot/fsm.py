@@ -73,7 +73,7 @@ class HandlerState(State):
 
 			if data:
 				register_context = data.get("register_context", self.register_context)
-				register_context_safe = data.get("register_context", self.register_context_safe)
+				register_context_safe = data.get("register_context_safe", self.register_context_safe)
 				try:
 					del data["register_context"]
 					del data["register_context_safe"]

@@ -1,4 +1,5 @@
 import logging
+from logging import config
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
@@ -9,8 +10,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from omsu_bot import utils
 
+from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
@@ -168,20 +169,18 @@ class Registration(RouterHandler):
 				await msg.answer(text=lang.user_error_database_connection)
 				return
 
-			async with ChatActionSender.typing(chat_id=msg.chat.id, bot=self.bot.tg):
+			sender = msg.from_user
 
-				sender = msg.from_user
+			sess: sorm.Session = self.bot.db.session
 
-				sess: sorm.Session = self.bot.db.session
+			if sess:
+				with sess.begin():
+					user: User = sess.execute(sa.select(User).where(User.tg_id == sender.id)).scalar_one_or_none()
 
-				if sess:
-					with sess.begin():
-						user: User = sess.execute(sa.select(User).where(User.tg_id == sender.id)).scalar_one_or_none()
-
-				if user:
-					await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id, actor=sender)
-				else:
-					await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
+			if user:
+				await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id)
+			else:
+				await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
 		
 		@router.callback_query(RegistrationForm.greetings_approval)
 		async def handle_greetings_approval(call: CallbackQuery, state: FSMContext):
@@ -353,9 +352,7 @@ class Registration(RouterHandler):
 			if await utils.throttling_assert(state): return
 			
 			await call.answer()
-			
 			c = call.data
-
 			if c == "change":
 				await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
 				return
@@ -388,7 +385,7 @@ class Registration(RouterHandler):
 						student = Student(user_id=pk[0], group_id=group_id)
 						sess.add(student)
 						success = True
-			
+
 			if success:
 				await call.message.edit_text(
 					text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",

@@ -10,8 +10,8 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
-from omsu_bot import utils
 
+from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
@@ -40,7 +40,7 @@ lesson_time = {
 class ScheduleForm(StatesGroup):
 
 	@staticmethod
-	async def schedule_message(self, bot, context: FSMContext, tomorrow=False):
+	async def schedule_message(self, bot, context: FSMContext, for_datetime=False, tomorrow: bool = False):
 		if not bot.db.is_online():
 			await context.clear()
 			return dict(
@@ -62,18 +62,14 @@ class ScheduleForm(StatesGroup):
 
 			## TIMING ##
 			
-			now = datetime.today()
+			for_datetime = for_datetime or datetime.today()
 
-			if tomorrow:
-				now = now + timedelta(days=1)
-
-			weekday = now.weekday()
+			weekday = for_datetime.weekday()
 			
 			academic_start = bot.config.schedule.academic_start
-			week_number = weeks_difference(academic_start, now.date())
-			print(week_number)
+			week_number = weeks_difference(academic_start, for_datetime.date())
 
-			text = f"{now.strftime('%d.%m.%Y')}  -  "
+			text = f"{for_datetime.strftime('%d.%m.%Y')}  -  "
 
 			if user.role_id == "student":
 				union = sess.execute(
@@ -96,16 +92,17 @@ class ScheduleForm(StatesGroup):
 				)
 
 				text += f"{group.name}\n\n"
-
-				empty = True
+				last_num = 0
 
 				for lesson, subject, teacher in lessons:
-					empty = False
-
 					num = lesson.lesson_number
+					if num - last_num > 1:
+						text += "\n"
+					last_num = num
+
 					lesson_bounds = lesson_time.get(num, None)
 					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
-					lesson_name = subject.name if subject else 'Неизвестный'
+					lesson_name = subject.name if subject else "Неизвестный"
 
 					if len(lesson_name) + len(lesson_type_room) < 30:
 						text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
@@ -117,7 +114,7 @@ class ScheduleForm(StatesGroup):
 					if teacher:
 						text += f" - {teacher.name}\n"
 				
-				if empty:
+				if last_num == 0:
 					text += " 😄 Занятий нет..."
 
 			elif user.role_id == "teacher":
@@ -133,16 +130,18 @@ class ScheduleForm(StatesGroup):
 					.join(Group, Group.id_ == Lesson.group_id)
 				)
 
-				text += "{teacher.name}\n\n"
-				empty = True
+				text += f"{teacher.name}\n\n"
+				last_num = 0
 
 				for lesson, subject, group in lessons:
-					empty = False
-
 					num = lesson.lesson_number
+					if num - last_num > 1:
+						text += "\n"
+					last_num = num
+
 					lesson_bounds = lesson_time.get(num, None)
 					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
-					lesson_name = subject.name if subject else 'Неизвестный'
+					lesson_name = subject.name if subject else "Неизвестный"
 
 					if len(lesson_name) + len(lesson_type_room) < 30:
 						text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
@@ -151,49 +150,41 @@ class ScheduleForm(StatesGroup):
 					
 					if lesson_bounds:
 						text += f" - {lesson_bounds}\n"
-					
 					if group:
 						text += f" - {group.name}\n"
 				
-				if empty:
+				if last_num == 0:
 					text += " 😄 Занятий нет..."
-				
+			
 			return dict(
 				text=text,
-				reply_markup=self.reply_markup,
-				register_context=True
+				reply_markup=None if tomorrow else self.reply_markup
 			)
 		
 		
 	schedule = HandlerState(
 		message_handler=schedule_message,
-		register_context=False,
 		reply_markup=
 			InlineKeyboardBuilder()
+				.button(text="На завтра", callback_data="show_tomorrow")
 				.as_markup()
 	)
-
 
 
 class Schedule(RouterHandler):
 	def __init__(self):
 		super().__init__()
-		
 		router: Router = self.router
 
 		@router.callback_query(ScheduleForm.schedule)
 		async def handle_schedule(call: CallbackQuery, state: FSMContext):
 			if await utils.throttling_assert(state): return
-			
+
 			msg = call.message
 
 			match call.data:
 				case "show_tomorrow":
 					await call.answer()
-					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, tomorrow=True)
+					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, for_datetime=datetime.today()+timedelta(days=1), tomorrow=True)
 				case _:
 					await call.answer(text="В разработке...")
-				
-
-		
-
