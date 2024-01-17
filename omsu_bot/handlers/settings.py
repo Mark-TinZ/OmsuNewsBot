@@ -6,8 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from omsu_bot import utils
 
+from omsu_bot import utils
 from omsu_bot.fsm import HandlerState
 import omsu_bot.data.language as lang
 from omsu_bot.handlers import RouterHandler
@@ -43,21 +43,21 @@ class SettingsForm(StatesGroup):
 
 				if not (union and union[0] and union[1]):
 					return dict(text=lang.user_error_database_logic)
-				
+
 				student, group = union
 
 				text += f"*👨‍🎓 Студент\n💼 Группа:* {group.name}"
-			
+
 			elif user.role_id == "teacher":
-				teacher = sess.execute(
+				teacher: Teacher = sess.execute(
 					sa.select(Teacher)
 					.where(Teacher.user_id == user.id_)
-				).first()
+				).scalar_one_or_none()
 
 				if not teacher:
 					return dict(text=lang.user_error_database_logic)
 
-				text += f"*👨‍🏫 Преподаватель\nИмя:* {teacher.name}\n"
+				text += f"*👨‍🏫 Преподаватель\n😎 Имя:* {teacher.name}"
 		
 
 		return dict(

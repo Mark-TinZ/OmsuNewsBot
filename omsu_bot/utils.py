@@ -34,7 +34,7 @@ async def register_context(state: FSMContext, message: aiogram.types.Message | i
 
 	msg_id = message if isinstance(message, int) else message.message_id
 
-	await state.update_data(state_context_message_id=msg_id)
+	await state.update_data(context_message_id=msg_id)
 
 
 async def drop_context(state: FSMContext):
@@ -43,6 +43,7 @@ async def drop_context(state: FSMContext):
 		del data["context_message_id"]
 		state.set_data(data)
 	except Exception: pass
+
 
 
 # freq: частота отправки, при которой будет записываться счётчик
@@ -95,6 +96,7 @@ async def throttling_assert(state: FSMContext, freq: float = 2.0, count: int = 3
 		return False
 	
 	return True
+
 
 
 
