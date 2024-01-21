@@ -4,8 +4,9 @@ import sqlalchemy.orm as sorm
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile, ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
 from omsu_bot.fsm import HandlerState
@@ -113,11 +114,16 @@ class Settings(RouterHandler):
 							sess.execute(sa.update(Teacher).where(Teacher.user_id == user.id_).values(user_id=sa.null()))
 						
 						sess.delete(user)
-						
-						await call.message.edit_text(
+						# TODO: ВНИМАНИЕ КOСТЫЛЬ СУКА
+						await call.message.delete()
+						await call.message.answer(
 							text="⛔ Ваш аккаунт успешно *удалён*",
+							reply_markup=ReplyKeyboardRemove(),
 							parse_mode="Markdown"
 						)
+						async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
+							video_note = FSInputFile("media/video/delete_data.mp4")
+							await call.message.answer_video_note(video_note)
 				case _:
 					await call.answer(text="В разработке...")
 						

@@ -13,6 +13,7 @@ from omsu_bot.config import Config
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
+from omsu_bot.handlers.about import AboutForm
 from omsu_bot.handlers.admin import AdministrationForm
 from omsu_bot.handlers.schedule import ScheduleForm
 from omsu_bot.handlers.settings import SettingsForm
@@ -53,7 +54,6 @@ class MenuForm(StatesGroup):
 				student: Student = sess.execute(sa.select(Student).where(Student.user_id == user.id_)).scalar_one_or_none()
 				if not student:
 					return dict(text=lang.user_error_database_logic)
-				
 				if student.is_moderator or tg_id in cfg.bot.admin_ids:
 						reply_menu.row(KeyboardButton(text="Админ-меню"))
 			elif user.role_id == "teacher":
@@ -69,9 +69,6 @@ class MenuForm(StatesGroup):
 		)
 	
 	menu_main = HandlerState(message_handler=menu_main_message)
-
-
-
 
 
 class Menu(RouterHandler):
@@ -96,11 +93,10 @@ class Menu(RouterHandler):
 		async def handle_about(msg: types.Message, state: FSMContext):
 			if await utils.throttling_assert(state): return
 
-			await msg.answer(lang.user_about)
-			#await msg.answer_video_note(types.FSInputFile("media/video/dragon-dance.mp4"))
+			await AboutForm.about.message_send(self.bot, state, msg.chat)
 
-		@router.message(F.text.lower() == "Админ-меню")
+		@router.message(F.text.lower() == "админ-меню")
 		async def handle_admin(msg: types.Message, state: FSMContext):
 			if await utils.throttling_assert(state): return
 
-			await AdministrationForm.admin.message_send(self.bot, state, msg.chat, reply_to_message_id=msg)
+			await AdministrationForm.admin.message_send(self.bot, state, msg.chat)

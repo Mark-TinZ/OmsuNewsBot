@@ -1,4 +1,4 @@
-import math
+import imp
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
@@ -7,13 +7,15 @@ from datetime import datetime, timedelta
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
-from aiogram.types import Message, CallbackQuery
+from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
+from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
+from omsu_bot.services import calendar_builder
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Group, Subject, User, Student, Teacher, Lesson
 
@@ -40,7 +42,7 @@ lesson_time = {
 class ScheduleForm(StatesGroup):
 
 	@staticmethod
-	async def schedule_message(self, bot, context: FSMContext, for_datetime=False, tomorrow: bool = False):
+	async def schedule_message(self, bot, context: FSMContext, at=None, markup: bool = False, tomorrow: bool = False):
 		if not bot.db.is_online():
 			await context.clear()
 			return dict(
@@ -62,14 +64,14 @@ class ScheduleForm(StatesGroup):
 
 			## TIMING ##
 			
-			for_datetime = for_datetime or datetime.today()
+			at = at or datetime.today().date()
 
-			weekday = for_datetime.weekday()
+			weekday = at.weekday()
 			
 			academic_start = bot.config.schedule.academic_start
-			week_number = weeks_difference(academic_start, for_datetime.date())
+			week_number = weeks_difference(academic_start, at)
 
-			text = f"{for_datetime.strftime('%d.%m.%Y')}  -  "
+			text = f"{at.strftime('%d.%m.%Y')}  -  "
 
 			if user.role_id == "student":
 				union = sess.execute(
@@ -156,19 +158,28 @@ class ScheduleForm(StatesGroup):
 				if last_num == 0:
 					text += " 😄 Занятий нет..."
 			
+			await context.update_data(selected_date=at)
+
+			builder = InlineKeyboardBuilder()
+			if markup:
+				calendar_builder.build(builder, at)
+			else:
+				builder.button(text="Календарь", callback_data="show_calendar")
+
 			return dict(
 				text=text,
-				reply_markup=None if tomorrow else self.reply_markup
+				reply_markup=builder.as_markup()
 			)
-		
-		
+
 	schedule = HandlerState(
 		message_handler=schedule_message,
-		reply_markup=
-			InlineKeyboardBuilder()
-				.button(text="На завтра", callback_data="show_tomorrow")
-				.as_markup()
+		# reply_markup=
+		# 	InlineKeyboardBuilder()
+		# 		.button(text="На завтра", callback_data="show_tomorrow")
+		# 		.button(text="Календарь", callback_data="show_calendar")
+		# 		.as_markup()
 	)
+
 
 
 class Schedule(RouterHandler):
@@ -176,15 +187,47 @@ class Schedule(RouterHandler):
 		super().__init__()
 		router: Router = self.router
 
+		# @router.callback_query(DialogCalendarCallback.filter())
+		# async def process_dialog_calendar(callback_query: CallbackQuery, ):
+		# 	print("123"*1000)
+		# 	selected, date = await DialogCalendar().process_selection(callback_query, callback_data)
+		# 	if selected: 
+		# 		await callback_query.message.answer(
+		# 			f'You selected {date.strftime("%d/%m/%Y")}'
+		# 		)
+
 		@router.callback_query(ScheduleForm.schedule)
 		async def handle_schedule(call: CallbackQuery, state: FSMContext):
-			if await utils.throttling_assert(state): return
+			if await utils.throttling_assert(state, count=5): return
 
+			await call.answer()
 			msg = call.message
 
+			if call.data == "mlabel":
+				await msg.answer_video_note(FSInputFile("media/video/heli-maxwell.mp4"))
+
+
+			data = await state.get_data()
+
+
+			at = calendar_builder.process(call.data, data["selected_date"])
+
+			if at:
+				if call.data == "month_prev" or call.data == "month_next":
+					await ScheduleForm.schedule.message_edit(self.bot, state, msg, at=at, markup=True)
+				else:
+					await ScheduleForm.schedule.message_edit(self.bot, state, msg, at=at)
+
 			match call.data:
-				case "show_tomorrow":
-					await call.answer()
-					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, for_datetime=datetime.today()+timedelta(days=1), tomorrow=True)
+				# case "show_tomorrow":
+				# 	await call.answer()
+				# 	await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, for_datetime=datetime.today()+timedelta(days=1), tomorrow=True)
+				case "show_calendar":
+					data = await state.get_data()
+					at = data["selected_date"]
+					at = at or datetime.today().date()
+					builder = InlineKeyboardBuilder()
+					calendar_builder.build(builder, at)
+					await call.message.edit_reply_markup(reply_markup=builder.as_markup())
 				case _:
 					await call.answer(text="В разработке...")
