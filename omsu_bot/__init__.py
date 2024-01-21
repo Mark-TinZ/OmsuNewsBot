@@ -29,7 +29,7 @@ class OMSUBot:
 		self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
 						   cfg.db.database)
 
-		handler_list = [Registration(), Menu(), Settings(), Schedule()]
+		handler_list = [Registration(), Menu(), Administration(), Settings(), Schedule()]
 
 		self.handlers = handler_list
 
