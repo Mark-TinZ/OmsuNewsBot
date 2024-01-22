@@ -1,4 +1,4 @@
-import imp
+import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
@@ -26,7 +26,7 @@ def weeks_difference(start_date, end_date):
 	return (days_difference // 7) + 1
 
 
-
+logger = logging.getLogger(__name__)
 lesson_time = {
 	1: "8:45-9:30 / 9:35-10:20",
 	2: "10:30-11:15 / 11:20-12:05",
@@ -40,11 +40,12 @@ lesson_time = {
 
 
 class ScheduleForm(StatesGroup):
-
+	
 	@staticmethod
 	async def schedule_message(self, bot, context: FSMContext, at=None, markup: bool = False, tomorrow: bool = False):
 		if not bot.db.is_online():
 			await context.clear()
+			logger.error(f"id={context.key.user_id}, {lang.user_error_database_connection}")
 			return dict(
 				text=lang.user_error_database_connection
 			)
@@ -58,6 +59,7 @@ class ScheduleForm(StatesGroup):
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
+				logger.error(f"id={context.key.user_id}, Вы не зарегистрированы!")
 				return dict(
 					text=lang.user_error_auth_unknown
 				)
@@ -81,6 +83,7 @@ class ScheduleForm(StatesGroup):
 				).first()
 
 				if not (union and union[0] and union[1]):
+					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 				
 				student, group = union
@@ -122,6 +125,7 @@ class ScheduleForm(StatesGroup):
 			elif user.role_id == "teacher":
 				teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				if not teacher:
+					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 				
 				lessons = sess.execute(
@@ -164,8 +168,8 @@ class ScheduleForm(StatesGroup):
 			if markup:
 				calendar_builder.build(builder, at)
 			else:
+				builder.button(text="На завтра", callback_data="show_tomorrow")
 				builder.button(text="Календарь", callback_data="show_calendar")
-
 			return dict(
 				text=text,
 				reply_markup=builder.as_markup()
@@ -219,9 +223,11 @@ class Schedule(RouterHandler):
 					await ScheduleForm.schedule.message_edit(self.bot, state, msg, at=at)
 
 			match call.data:
-				# case "show_tomorrow":
-				# 	await call.answer()
-				# 	await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, for_datetime=datetime.today()+timedelta(days=1), tomorrow=True)
+				case "show_tomorrow":
+					data = await state.get_data()
+					at = data["selected_date"]
+					await call.answer()
+					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, at=at+timedelta(days=1), tomorrow=True)
 				case "show_calendar":
 					data = await state.get_data()
 					at = data["selected_date"]

@@ -1,5 +1,4 @@
 import logging
-from logging import config
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
@@ -17,6 +16,8 @@ from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.handlers.menu import MenuForm
 from omsu_bot.database.models import Student, Teacher, User, Group
+
+logger = logging.getLogger(__name__)
 
 
 class RegistrationForm(StatesGroup):
@@ -101,6 +102,8 @@ class RegistrationForm(StatesGroup):
 	async def group_selection_message(self, bot, state: FSMContext):
 		await state.set_state(self)
 		if not bot.db.is_online():
+			# TODO: Исправить ошибку
+			# logger.error(f"id={state.key.user_id}, {lang.user_error_database_connection}")
 			return dict(
 				text=lang.user_error_database_connection
 			)
@@ -165,6 +168,7 @@ class Registration(RouterHandler):
 			if await utils.throttling_assert(state): return
 			
 			if not self.bot.db.is_online():
+				logger.error(f"id={msg.from_user.id}, {lang.user_error_database_connection}")
 				await state.clear()
 				await msg.answer(text=lang.user_error_database_connection)
 				return
@@ -226,6 +230,7 @@ class Registration(RouterHandler):
 				return
 
 			if not self.bot.db.is_online():
+				logger.error(f"id={msg.from_user.id}, {lang.user_error_database_connection}")
 				await msg.answer(text=lang.user_error_database_connection)
 				return
 
@@ -243,6 +248,7 @@ class Registration(RouterHandler):
 				await state.update_data(teacher_name=name, teacher_authkey=msg.text)
 				await RegistrationForm.teacher_approval.message_send(self.bot, state, chat=msg.chat, reply_to_message_id=msg.message_id)
 			else:
+				logger.error(f"id={msg.from_user.id}, *Преподаватель* При регистрации возникла ошибка... *несуществующий ключ авторизации*")
 				await msg.answer_video_note(FSInputFile("media/video/cat-huh.mp4"))
 				ans = await msg.answer(
 					text="👨‍🏫 *Преподаватель*\n\n*При регистрации возникла ошибка...*\nВозможно вы ввели *несуществующий ключ авторизации*\nПроверьте и отправьте ключ ещё раз",
@@ -267,6 +273,7 @@ class Registration(RouterHandler):
 				return
 
 			if not self.bot. db.is_online():
+				logger.error(f"id={call.message.from_user.id}, {lang.user_error_database_connection}")
 				await call.message.edit_text(text=lang.user_error_database_connection)
 				return
 
@@ -293,6 +300,7 @@ class Registration(RouterHandler):
 					parse_mode="Markdown"
 				)
 			else:
+				logger.error(f"id={call.message.from_user.id}, *Преподаватель* При регистрации возникла ошибка... *ключ уже недействителен*")
 				await call.message.edit_text(
 					text="👨‍🏫 *Преподаватель*\n\n*При регистрации возникла ошибка...*\nВозможно этот *ключ уже недействителен*\nПроверьте и отправьте ключ ещё раз",
 					parse_mode="Markdown",
@@ -363,6 +371,7 @@ class Registration(RouterHandler):
 			## approved ##
 
 			if not self.bot.db.is_online():
+				logger.error(f"id={call.message.from_user.id}, {lang.user_error_database_connection}")
 				await call.message.edit_text(text=lang.user_error_database_connection)
 				return
 			
@@ -392,6 +401,7 @@ class Registration(RouterHandler):
 					parse_mode="Markdown"
 				)
 			else:
+				logger.error(f"id={call.message.from_user.id}, При регистрации возникла ошибка...")
 				await call.message.edit_text("При регистрации возникла ошибка...")
 				await call.message.answer_video_note(FSInputFile("media/video/error-bd.mp4"))
 		

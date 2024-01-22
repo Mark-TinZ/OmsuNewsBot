@@ -8,7 +8,6 @@ from datetime import datetime
 from omsu_bot import OMSUBot
 from omsu_bot.config import load_config
 
-
 def setup_logging() -> None:
 	log_level = logging.INFO
 	bl.basic_colorized_config(level=log_level)
@@ -19,10 +18,13 @@ def setup_logging() -> None:
 	file_handler = logging.FileHandler(f"{logs_folder}/log-{datetime.now().strftime('%Y-%m-%d')}.log")
 	file_handler.setFormatter(logging.Formatter(log_format))
 
+	root_logger = logging.getLogger()
+	root_logger.setLevel(log_level)
+	root_logger.addHandler(file_handler)
+
 	logging.basicConfig(
 		level=log_level,
-		format=log_format,
-		handlers=[file_handler] 
+		format=log_format
 	)
 	logger = logging.getLogger(__name__)
 	logger.info("Starting bot")
@@ -42,3 +44,4 @@ if __name__ == '__main__':
 		asyncio.run(main())
 	except (KeyboardInterrupt, SystemExit):
 		logging.error("Bot stopped!")
+		logging.shutdown()

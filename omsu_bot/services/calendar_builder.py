@@ -10,6 +10,7 @@ def build(builder: InlineKeyboardBuilder, at: date):
 	month_now = at_now.month
 	year_now = at_now.year
 
+	day = at.day
 	month = at.month
 	month_name = lang.month_map[month]
 	year = at.year
@@ -23,10 +24,12 @@ def build(builder: InlineKeyboardBuilder, at: date):
 	
 	for i in range(1, day_count+1):
 		if i == day_now and month == month_now and year == year_now:
+			n = f"⌂{i}"
+		elif i == day:
 			n = f"✓{i}"
 		else:
 			n = str(i)
-		builder.button(text=n, callback_data=n)
+		builder.button(text=n, callback_data=f"{i}")
 	
 	left = 7-day_count%7-week_day
 	if left < 0:

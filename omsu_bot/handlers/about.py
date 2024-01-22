@@ -1,20 +1,15 @@
-import sqlalchemy as sa
-import sqlalchemy.orm as sorm
+import logging
 
 from aiogram import Router
 from aiogram.fsm.state import StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.utils.chat_action import ChatActionSender
 
-from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
-from omsu_bot.database.models import User, Student, Teacher
 
-
+logger = logging.getLogger(__name__)
 
 class AboutForm(StatesGroup):
 	@staticmethod
