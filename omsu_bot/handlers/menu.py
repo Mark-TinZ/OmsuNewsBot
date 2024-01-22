@@ -93,7 +93,7 @@ class Menu(RouterHandler):
 		async def handle_about(msg: types.Message, state: FSMContext):
 			if await utils.throttling_assert(state): return
 
-			await AboutForm.about.message_send(self.bot, state, msg.chat)
+			await AboutForm.about.message_send(self.bot, state, msg.chat, msg.message_id)
 
 		@router.message(F.text.lower() == "админ-меню")
 		async def handle_admin(msg: types.Message, state: FSMContext):

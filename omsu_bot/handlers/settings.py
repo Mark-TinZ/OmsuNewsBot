@@ -1,10 +1,11 @@
+import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
-from aiogram import Router, types
+from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
-from aiogram.types import Message, CallbackQuery, FSInputFile, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, FSInputFile, ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.chat_action import ChatActionSender
 
@@ -14,6 +15,8 @@ import omsu_bot.data.language as lang
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Student, Group, Teacher, User
 
+logger = logging.getLogger(__name__)
+
 
 class SettingsForm(StatesGroup):
 	@staticmethod
@@ -21,6 +24,7 @@ class SettingsForm(StatesGroup):
 		await context.set_state(self)
 
 		if not bot.db.is_online():
+			logger.error(f"id={context.key.user_id}, {lang.user_error_database_connection}")
 			return dict(text=lang.user_error_database_connection)
 
 		tg_id = context.key.user_id
@@ -33,6 +37,7 @@ class SettingsForm(StatesGroup):
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
+				logger.error(f"id={context.key.user_id}, Вы не зарегистрированы!")
 				return dict(text=lang.user_error_auth_unknown)
 
 			if user.role_id == "student":
@@ -43,6 +48,7 @@ class SettingsForm(StatesGroup):
 				).first()
 
 				if not (union and union[0] and union[1]):
+					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 
 				student, group = union
@@ -56,6 +62,7 @@ class SettingsForm(StatesGroup):
 				).scalar_one_or_none()
 
 				if not teacher:
+					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 
 				text += f"*👨‍🏫 Преподаватель\n😎 Имя:* {teacher.name}"
@@ -91,6 +98,7 @@ class Settings(RouterHandler):
 			if await utils.throttling_assert(state): return
 
 			if not self.bot.db.is_online():
+				logger.error(f"id={call.message.from_user.id}, Вы не зарегистрированы!")
 				await call.message.edit_text(text=lang.user_error_auth_unknown)
 			
 			
@@ -105,6 +113,7 @@ class Settings(RouterHandler):
 						user = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
 						
 						if not user:
+							logger.error(f"id={call.message.from_user.id}, Вы не зарегистрированы!")
 							await call.message.edit_text(text=lang.user_error_auth_unknown)
 							return
 						
@@ -114,7 +123,6 @@ class Settings(RouterHandler):
 							sess.execute(sa.update(Teacher).where(Teacher.user_id == user.id_).values(user_id=sa.null()))
 						
 						sess.delete(user)
-						# TODO: ВНИМАНИЕ КOСТЫЛЬ СУКА
 						await call.message.delete()
 						await call.message.answer(
 							text="⛔ Ваш аккаунт успешно *удалён*",
