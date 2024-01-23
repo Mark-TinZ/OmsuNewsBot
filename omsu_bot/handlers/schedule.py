@@ -129,17 +129,17 @@ class ScheduleForm(StatesGroup):
 					return dict(text=lang.user_error_database_logic)
 				
 				lessons = sess.execute(
-					sa.select(Lesson, Subject, Group)
+					sa.select(Lesson, Subject) # , Group
 					.where(Lesson.teacher_id == teacher.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
 					.order_by(Lesson.lesson_number)
 					.join(Subject, Subject.id_ == Lesson.subject_id)
-					.join(Group, Group.id_ == Lesson.group_id)
+					# .join(Group, Group.id_ == Lesson.group_id)
 				)
 
 				text += f"{teacher.name}\n\n"
 				last_num = 0
 
-				for lesson, subject, group in lessons:
+				for lesson, subject in lessons: # , group 
 					num = lesson.lesson_number
 					if num - last_num > 1:
 						text += "\n"
@@ -156,8 +156,8 @@ class ScheduleForm(StatesGroup):
 					
 					if lesson_bounds:
 						text += f" - {lesson_bounds}\n"
-					if group:
-						text += f" - {group.name}\n"
+					# if group:
+					# 	text += f" - {group.name}\n"
 				
 				if last_num == 0:
 					text += " 😄 Занятий нет..."

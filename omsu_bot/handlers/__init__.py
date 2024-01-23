@@ -18,9 +18,9 @@ class Handler:
 
 
 class RouterHandler(Handler):
-	def __init__(self) -> None:
+	def __init__(self, router: Router = None) -> None:
 		super().__init__()
-		self.router = Router()
+		self.router = router or Router()
 
 	async def enable(self, bot):
 		await super().enable(bot)
