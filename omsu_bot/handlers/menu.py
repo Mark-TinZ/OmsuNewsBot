@@ -17,7 +17,7 @@ from omsu_bot.handlers.about import AboutForm
 from omsu_bot.handlers.admin import AdministrationForm
 from omsu_bot.handlers.schedule import ScheduleForm
 from omsu_bot.handlers.settings import SettingsForm
-from omsu_bot.database.models import User, Student, Teacher
+from omsu_bot.database.models import Group, User, Student, Teacher
 
 
 
@@ -51,15 +51,24 @@ class MenuForm(StatesGroup):
 				return dict(text=lang.user_error_auth_unknown)
 
 			if user.role_id == "student":
-				student: Student = sess.execute(sa.select(Student).where(Student.user_id == user.id_)).scalar_one_or_none()
-				if not student:
+				union = sess.execute(
+					sa.select(Student, Group)
+					.where(Student.user_id == user.id_)
+					.join(Group, Student.group_id == Group.id_)
+				).first()
+
+				if not union or len(union) != 2:
 					return dict(text=lang.user_error_database_logic)
-				if student.is_moderator or tg_id in cfg.bot.admin_ids:
-						reply_menu.row(KeyboardButton(text="Админ-меню"))
+				student, group = union
+				if student.is_moderator:
+					reply_menu.row(KeyboardButton(text="Управление группой"))
 			elif user.role_id == "teacher":
 				teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				if not teacher:
 					return dict(text=lang.user_error_database_logic)
+			
+			if tg_id in cfg.bot.admin_ids:
+				reply_menu.row(KeyboardButton(text="Админ-меню"))
 		
 		
 		
@@ -97,6 +106,15 @@ class Menu(RouterHandler):
 
 		@router.message(F.text.lower() == "админ-меню")
 		async def handle_admin(msg: types.Message, state: FSMContext):
+			if await utils.throttling_assert(state): return
+
+			if msg.from_user.id not in self.bot.config.bot.admin_ids:
+				return
+
+			await AdministrationForm.admin.message_send(self.bot, state, msg.chat)
+
+		@router.message(F.text.lower() == "управление группой")
+		async def handle_moderator(msg: types.Message, state: FSMContext):
 			if await utils.throttling_assert(state): return
 
 			await AdministrationForm.admin.message_send(self.bot, state, msg.chat)

@@ -24,7 +24,7 @@ def build(builder: InlineKeyboardBuilder, at: date):
 	
 	for i in range(1, day_count+1):
 		if i == day_now and month == month_now and year == year_now:
-			n = f"⌂{i}"
+			n = f"[{i}]"
 		elif i == day:
 			n = f"✓{i}"
 		else:
