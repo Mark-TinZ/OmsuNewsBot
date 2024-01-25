@@ -23,8 +23,8 @@ class AboutForm(StatesGroup):
 		text=lang.user_about,
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="Предложить идею", callback_data="idea_ticket")
-				.button(text="Сообщить о проблеме", callback_data="report_ticket")
+				.button(text="Предложить идею/Сообщить о проблеме", callback_data="idea_ticket")
+				# .button(text="Сообщить о проблеме", callback_data="report_ticket")
 				.as_markup()
 	)
 	
@@ -87,41 +87,51 @@ class About(RouterHandler):
 				parse_mode="HTML"
 			)
 
-			await msg.reply(**rpl_msg)
 			await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
+			await msg.reply(lang.user_about_idea_answer)
 			await state.clear()
 
-		@router.message(AboutForm.about_report_ticket)
-		async def about_report_ticket(msg: Message, state: FSMContext):
-			if await utils.throttling_assert(state): return
-			
-			text = msg.text
-			if not text:
-				text = msg.caption
 
-
-			if not text or len(text) > 4000:
-				return await msg.reply(lang.user_about_idea_error_len)
-			
-			rpl_msg = dict(
-				text=(
-					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
-					f"🛠️ <i>{text}</i>\n\n"
-					f"Пользователь: @{msg.from_user.username}"
-				),
-				parse_mode="HTML"
-			)
-
-			await msg.reply(**rpl_msg)
-			await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
-			await state.clear()
-
-		@router.callback_query(AboutForm.about_idea_ticket, AboutForm.about_report_ticket)
-		async def ticket_cancel(call: CallbackQuery, state: FSMContext):
-			if await utils.throttling_assert(state): return
-			
-			data = call.data
+		@router.callback_query(AboutForm.about_idea_ticket)
+		async def about_idea_ticket_call(call: CallbackQuery, state: FSMContext):
+			data = call.data 
 			if data == "cancel":
-				AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
+				await AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
 			else:
 				await call.answer(text="В разработке...")
+
+
+		# @router.message(AboutForm.about_report_ticket)
+		# async def about_report_ticket(msg: Message, state: FSMContext):
+		# 	if await utils.throttling_assert(state): return
+			
+		# 	text = msg.text
+		# 	if not text:
+		# 		text = msg.caption
+
+
+		# 	if not text or len(text) > 4000:
+		# 		return await msg.reply(lang.user_about_idea_error_len)
+			
+		# 	rpl_msg = dict(
+		# 		text=(
+		# 			f"Тикет: <code>#id{msg.from_user.id}</code>\n"
+		# 			f"🛠️ <i>{text}</i>\n\n"
+		# 			f"Пользователь: @{msg.from_user.username}"
+		# 		),
+		# 		parse_mode="HTML"
+		# 	)
+
+		# 	await msg.reply(**rpl_msg)
+		# 	await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
+		# 	await state.clear()
+
+		
+		# async def ticket_cancel(call: CallbackQuery, state: FSMContext):
+		# 	if await utils.throttling_assert(state): return
+			
+		# 	data = call.data
+		# 	if data == "cancel":
+		# 		AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
+		# 	else:
+		# 		await call.answer(text="В разработке...")
