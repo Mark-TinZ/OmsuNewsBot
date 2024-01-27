@@ -42,27 +42,29 @@ lesson_time = {
 class ScheduleForm(StatesGroup):
 	
 	@staticmethod
-	async def schedule_message(self, bot, context: FSMContext, at=None, markup: bool = False, tomorrow: bool = False):
+	async def schedule_message(self, bot, context: FSMContext, at=None, show_calendar: bool = False):
+		tg_id = context.key.user_id
 		if not bot.db.is_online():
 			await context.clear()
-			logger.error(f"id={context.key.user_id}, {lang.user_error_database_connection}")
+			logger.error(f"id={tg_id}, {lang.user_error_database_connection}")
 			return dict(
 				text=lang.user_error_database_connection
 			)
 		await context.set_state(self)
 
-		tg_id = context.key.user_id
 
 		sess: sorm.Session = bot.db.session
 
-		with sess.begin(): 
+		with sess.begin():
+
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
-				logger.error(f"id={context.key.user_id}, Вы не зарегистрированы!")
+				logger.error(f"id={tg_id} не зарегистрированы!")
 				return dict(
 					text=lang.user_error_auth_unknown
 				)
+
 
 			## TIMING ##
 			
@@ -83,7 +85,7 @@ class ScheduleForm(StatesGroup):
 				).first()
 
 				if not (union and union[0] and union[1]):
-					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
+					logger.error(f"id={tg_id}, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 				
 				student, group = union
@@ -125,7 +127,7 @@ class ScheduleForm(StatesGroup):
 			elif user.role_id == "teacher":
 				teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				if not teacher:
-					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
+					logger.error(f"id={tg_id}, Логическое исключение, запись в бд повреждена")
 					return dict(text=lang.user_error_database_logic)
 				
 				lessons = sess.execute(
@@ -141,14 +143,16 @@ class ScheduleForm(StatesGroup):
 
 				for lesson, subject, group  in lessons:
 					num = lesson.lesson_number
-					if num - last_num > 1:
-						text += "\n"
 
 					if last_num == num:
 						if group:
 							text += f" - {group.name}\n"
 						last_num = num
 						continue
+
+					if num - last_num > 1:
+						text += "\n"
+					
 					last_num = num
 
 					lesson_bounds = lesson_time.get(num, None)
@@ -171,24 +175,25 @@ class ScheduleForm(StatesGroup):
 			await context.update_data(selected_date=at)
 
 			builder = InlineKeyboardBuilder()
-			if markup:
+			if show_calendar:
 				calendar_builder.build(builder, at)
 			else:
 				builder.button(text="На завтра", callback_data="show_tomorrow")
 				builder.button(text="Календарь", callback_data="show_calendar")
+
+				if tg_id in bot.config.bot.admin_ids:
+					builder.button(text="Изменить", callback_data="edit_schedule")
+				builder.adjust(2, 1)
+			
 			return dict(
 				text=text,
 				reply_markup=builder.as_markup()
 			)
 
-	schedule = HandlerState(
-		message_handler=schedule_message,
-		# reply_markup=
-		# 	InlineKeyboardBuilder()
-		# 		.button(text="На завтра", callback_data="show_tomorrow")
-		# 		.button(text="Календарь", callback_data="show_calendar")
-		# 		.as_markup()
-	)
+	schedule = HandlerState(message_handler=schedule_message)
+
+
+	scope_selection = HandlerState()
 
 
 
@@ -219,27 +224,36 @@ class Schedule(RouterHandler):
 
 			data = await state.get_data()
 
-
-			at = calendar_builder.process(call.data, data["selected_date"])
+			current_date = data.get("selected_date", None) or datetime.today().date()
+			at = calendar_builder.process(call.data, current_date)
 
 			if at:
-				if call.data == "month_prev" or call.data == "month_next":
-					await ScheduleForm.schedule.message_edit(self.bot, state, msg, at=at, markup=True)
-				else:
-					await ScheduleForm.schedule.message_edit(self.bot, state, msg, at=at)
+				await ScheduleForm.schedule.message_edit(self.bot, 
+					state, 
+					msg, 
+					at=at, 
+					show_calendar=(call.data == "month_prev" or call.data == "month_next")
+				)
 
 			match call.data:
 				case "show_tomorrow":
-					data = await state.get_data()
-					at = data["selected_date"]
 					await call.answer()
-					await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, at=at+timedelta(days=1), tomorrow=True)
+					await ScheduleForm.schedule.message_send(
+						self.bot, 
+						state, 
+						msg.chat, 
+						at=current_date+timedelta(days=1)
+					)
 				case "show_calendar":
-					data = await state.get_data()
-					at = data["selected_date"]
-					at = at or datetime.today().date()
+					await call.answer()
+
 					builder = InlineKeyboardBuilder()
-					calendar_builder.build(builder, at)
+					calendar_builder.build(builder, current_date)
+
 					await call.message.edit_reply_markup(reply_markup=builder.as_markup())
+				case "edit_schedule":
+					await call.answer()
+
+					
 				case _:
 					await call.answer(text="В разработке...")

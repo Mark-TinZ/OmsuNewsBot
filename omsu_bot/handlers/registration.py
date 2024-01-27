@@ -14,7 +14,7 @@ from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler, admin
-from omsu_bot.handlers.admin import groups
+from omsu_bot.handlers import groups
 from omsu_bot.handlers.menu import MenuForm
 from omsu_bot.database.models import Student, Teacher, User, Group
 
@@ -137,8 +137,8 @@ class RegistrationForm(StatesGroup):
 	async def data_approval_message(self, bot, state: FSMContext):
 		await state.set_state(self)
 		data = await state.get_data()
-		course_number = data["group_selection_course_number"]
-		group_name = data["group_selection_group_name"]
+		course_number = data["groups_course_number"]
+		group_name = data["groups_group_name"]
 
 		return dict(
 			text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВсё верно?",
@@ -183,6 +183,7 @@ class Registration(RouterHandler):
 					user: User = sess.execute(sa.select(User).where(User.tg_id == sender.id)).scalar_one_or_none()
 
 			if user:
+				# await self.bot.set_my_commands([""])
 				await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id)
 			else:
 				await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
@@ -377,9 +378,9 @@ class Registration(RouterHandler):
 				return
 			
 			data = await state.get_data()
-			group_id = data["group_selection_group_id"]
-			group_name = data["group_selection_group_name"]
-			course_number = data["group_selection_course_number"]
+			group_id = data["groups_group_id"]
+			group_name = data["groups_group_name"]
+			course_number = data["groups_course_number"]
 
 			await state.clear()
 

@@ -23,11 +23,11 @@ class GroupsForm(StatesGroup):
 		await state.set_state(self)
 		data = await state.get_data()
 		if next_state:
-			data["group_selection_next_state"] = next_state
+			data["groups_next_state"] = next_state
 		if prev_state:
-			data["group_selection_prev_state"] = prev_state
+			data["groups_prev_state"] = prev_state
 		if title:
-			data["group_selection_title"] = title
+			data["groups_title"] = title
 		await state.set_data(data)
 
 		builder = (InlineKeyboardBuilder()
@@ -38,7 +38,7 @@ class GroupsForm(StatesGroup):
 			.adjust(2)
 		)
 
-		if data["group_selection_prev_state"]:
+		if data["groups_prev_state"]:
 			builder.row(InlineKeyboardButton(text="Назад", callback_data="return"))
 
 		return dict(
@@ -62,8 +62,8 @@ class GroupsForm(StatesGroup):
 			)
 
 		data = await state.get_data()
-		course_number = data["group_selection_course_number"]
-		title = data.get("group_selection_title", None)
+		course_number = data["groups_course_number"]
+		title = data.get("groups_title", None)
 		
 		sess: sorm.Session = bot.db.session
 		
@@ -100,7 +100,7 @@ class Groups(RouterHandler):
 			await call.answer()
 			
 			data = await state.get_data()
-			prev_state = data.get("group_selection_prev_state", None)
+			prev_state = data.get("groups_prev_state", None)
 
 			if call.data == "return" and prev_state:
 				await prev_state.message_edit(self.bot, state, call.message)
@@ -111,7 +111,7 @@ class Groups(RouterHandler):
 					return
 				
 				course_number = int(call.data)
-				await state.update_data(group_selection_course_number=course_number)
+				await state.update_data(groups_course_number=course_number)
 				await GroupsForm.group_selection.message_edit(self.bot, state, call.message)
 		
 		
@@ -135,10 +135,10 @@ class Groups(RouterHandler):
 
 
 			
-			await state.update_data(group_selection_group_id=group_id, group_selection_group_name=group_name)
+			await state.update_data(groups_group_id=group_id, groups_group_name=group_name)
 
 			data = await state.get_data()
-			next_state = data.get("group_selection_next_state", None)
+			next_state = data.get("groups_next_state", None)
 
 			if next_state:
 				await next_state.message_edit(self.bot, state, call.message)
