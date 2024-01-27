@@ -1,14 +1,14 @@
-from ctypes.wintypes import MSG
-from email import message
+import re
 import logging
-import stat
-from traceback import print_tb
 
-from aiogram import Router
+from aiogram import F, Router
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.state import StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.filters import Filter
+from aiogram.utils.magic_filter import MagicFilter
 
 from omsu_bot import utils
 import omsu_bot.data.language as lang
@@ -17,6 +17,14 @@ from omsu_bot.handlers import RouterHandler
 from omsu_bot.services.broadcaster import broadcast
 
 logger = logging.getLogger(__name__)
+
+def parse_answer_data(text: str):
+	pattern = r"#id(\d+)"
+	ids = re.findall(pattern, text)
+	remaining_text = re.sub(pattern, '', text)
+	return map(int, ids), remaining_text.strip()
+
+
 
 class AboutForm(StatesGroup):
 	about = HandlerState(
@@ -89,7 +97,7 @@ class About(RouterHandler):
 
 			await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
 			await msg.reply(lang.user_about_idea_answer)
-			await state.clear()
+			await state.clear() 
 
 
 		@router.callback_query(AboutForm.about_idea_ticket)
@@ -100,38 +108,30 @@ class About(RouterHandler):
 			else:
 				await call.answer(text="В разработке...")
 
-
-		# @router.message(AboutForm.about_report_ticket)
-		# async def about_report_ticket(msg: Message, state: FSMContext):
-		# 	if await utils.throttling_assert(state): return
-			
-		# 	text = msg.text
-		# 	if not text:
-		# 		text = msg.caption
-
-
-		# 	if not text or len(text) > 4000:
-		# 		return await msg.reply(lang.user_about_idea_error_len)
-			
-		# 	rpl_msg = dict(
-		# 		text=(
-		# 			f"Тикет: <code>#id{msg.from_user.id}</code>\n"
-		# 			f"🛠️ <i>{text}</i>\n\n"
-		# 			f"Пользователь: @{msg.from_user.username}"
-		# 		),
-		# 		parse_mode="HTML"
-		# 	)
-
-		# 	await msg.reply(**rpl_msg)
-		# 	await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
-		# 	await state.clear()
-
+		@router.message(Command(commands="answer"))
+		async def answer_ticket(msg: Message, command: CommandObject):
+			if msg.from_user.id in self.bot.config.bot.admin_ids:
+				data = command.args
+				if data:
+					ids, text = parse_answer_data(data)
+					if ids and text:
+						send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
+						await broadcast(self.bot.tg, ids, send_message, parse_mode="HTML")
+			else:
+				return
 		
-		# async def ticket_cancel(call: CallbackQuery, state: FSMContext):
-		# 	if await utils.throttling_assert(state): return
-			
-		# 	data = call.data
-		# 	if data == "cancel":
-		# 		AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
-		# 	else:
-		# 		await call.answer(text="В разработке...")
+
+
+		@router.message(F.reply_to_message & F.reply_to_message.text & F.reply_to_message.text.regexp(r"^Тикет: #id(\d+)\n").as_("ticket_author_id"))
+		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match):
+			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
+
+			ticket_author_id = ticket_author_id.group(1)
+			if not (ticket_author_id and ticket_author_id.isdigit()): return
+			ticket_author_id = int(ticket_author_id)
+
+			text = msg.text
+
+			if text:
+				send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
+				await broadcast(self.bot.tg, [ticket_author_id], send_message, parse_mode="HTML")
