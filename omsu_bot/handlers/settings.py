@@ -80,7 +80,7 @@ class SettingsForm(StatesGroup):
 		reply_markup=
 			InlineKeyboardBuilder()
 				.button(text="🔕/🔔 Беззвучный режим", callback_data="notifications_enable")
-				.button(text="🖼/📄 Отображение рассписания", callback_data="schedule_view")
+				.button(text="🖼/📄 Отображение расписания", callback_data="schedule_view")
 				.button(text="❌ Удалить аккаунт", callback_data="account_remove")
 				.adjust(1)
 				.as_markup()

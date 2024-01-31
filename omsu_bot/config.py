@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import time
 from typing import Optional
 from datetime import date, datetime
 from environs import Env
@@ -31,12 +32,14 @@ class DbConfig:
 class BotConfig:
     token: str
     admin_ids: list[int]
+    timezone: str
 
     @staticmethod
     def from_env(env: Env):
         token = env.str("BOT_TOKEN")
         admin_ids = list(map(int, env.list("ADMINS")))
-        return BotConfig(token=token, admin_ids=admin_ids)
+        timezone = env.str("TIMEZONE")
+        return BotConfig(token=token, admin_ids=admin_ids, timezone=timezone)
 
 
 @dataclass

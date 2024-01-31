@@ -1,11 +1,9 @@
 import asyncio
-from functools import cache
 import logging
-from re import S
 from typing import Any, Union
 
 from aiogram import Bot, exceptions
-from aiogram.types import InlineKeyboardMarkup, InputFile
+from aiogram.types import InlineKeyboardMarkup
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +66,8 @@ async def broadcast(
 
 	return count
 
+
+
 class Broadcast():
 	def __init__(
 			self, 
@@ -76,85 +76,48 @@ class Broadcast():
 			protect_content: bool = False, 
 			disable_notification: bool = False, 
 			flood_sleep: bool = False
-			# **kwargs
 	):
 		self.bot: Bot = bot
 		self.chat_ids: list[Union[int, str]] = chat_ids
 		self.protect_content: bool = protect_content
 		self.disable_notification: bool = disable_notification
-		self.flood_sleep: bool = self.flood_sleep
-		# self.kwargs = kwargs
+		self.flood_sleep: bool = flood_sleep
 
-	async def send_message(
-			self, 
-			text: str, 
-			reply_markup: InlineKeyboardMarkup = None,
-			parse_mode: str = "Markdown"
-	) -> bool:
-		try:
-			await self.bot.send_message(
-				chat_id=self.chat_id,
-				text=text,
-				disable_notification=self.disable_notification,
-				reply_markup=reply_markup,
-				parse_mode=parse_mode
-			)
-		
-		except exceptions.TelegramRetryAfter as e:
-			logger.info(
-				f"Target [ID:{self.chat_id}]: Flood limit is exceeded. Sleep {e.retry_after} seconds."
-			)
-			if self.flood_sleep:
-				await asyncio.sleep(e.retry_after)
-				return await send_message(
-					self.bot, self.chat_id, text, self.disable_notification, reply_markup, parse_mode
-				)
-		
-		except exceptions.TelegramAPIError as e:
-			logger.exception(e, exc_info=True)
-		
-		else:
-			logger.debug(f"Target [ID:{self.chat_id}]: success")
-			return True
-		
-		return False
-	
-	async def send_photo(
-		self,
-		caption: str,
-		photo: Union[InputFile, str],
-		reply_markup: InlineKeyboardMarkup = None,
-		parse_mode: str = "Markdown"
-	) -> bool:
-		try:
-			await self.bot.send_photo(
-				user_id=self.chat_id,
-				photo=photo,
-				caption=caption,
-				disable_notification=self.disable_notification,
-				reply_markup=reply_markup,
-				parse_mode=parse_mode
-			)
-		except exceptions.TelegramRetryAfter as e:
-			logger.info(
-				f"Target [ID:{self.chat_id}]: Flood limit is exceeded. Sleep {e.retry_after} seconds."
-			)
-			if self.flood_sleep:
-				await asyncio.sleep(e.retry_after)
-				return await self.bot.send_photo(
-					chat_id=self.chat_id,
-					photo=photo,
-					caption=caption,
+
+	async def send_message(self, *args, **kwargs) -> bool:
+		import tracemalloc
+		tracemalloc.start()
+		for chat_id in self.chat_ids:
+			try:
+				self.bot.send_message(
+					*args,
+					chat_id=chat_id,
 					disable_notification=self.disable_notification,
-					reply_markup=reply_markup,
-					parse_mode=parse_mode
+					**kwargs
 				)
-		
-		except exceptions.TelegramAPIError as e:
-			logger.exception(e, exc_info=True)
-		
-		else:
-			logger.debug(f"Target [ID:{self.chat_id}]: success")
-			return True
-		
-		return False
+			except exceptions.TelegramRetryAfter as e:
+				await asyncio.sleep(e.retry_after)
+				self.bot.send_message(
+					*args,
+					chat_id=chat_id,
+					disable_notification=self.disable_notification,
+					**kwargs
+				)
+			
+
+	async def send_photo(self, *args, **kwargs) -> bool:
+		for chat_id in self.chat_ids:
+			try:
+				await self.bot.send_photo(
+					*args,
+					user_id=chat_id,
+					disable_notification=self.disable_notification,
+					**kwargs
+				)
+			except exceptions.TelegramRetryAfter as e:
+				await self.bot.send_photo(
+					*args,
+					user_id=chat_id,
+					disable_notification=self.disable_notification,
+					**kwargs
+				)
