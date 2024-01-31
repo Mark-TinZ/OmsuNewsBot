@@ -14,7 +14,7 @@ from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
-from omsu_bot.services.broadcaster import broadcast
+from omsu_bot.services.broadcaster import Broadcast, broadcast
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,16 @@ class About(RouterHandler):
 				parse_mode="HTML"
 			)
 
-			await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
+			# await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
+			mailing = Broadcast(self.bot.tg, self.bot.config.bot.admin_ids)
+			await mailing.send_message(
+				text=(
+					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
+					f"💡 <i>{text}</i>\n\n"
+					f"Пользователь: @{msg.from_user.username}"
+				),
+				parse_mode="HTML"
+			)
 			await msg.reply(lang.user_about_idea_answer)
 			await state.clear() 
 
@@ -110,15 +119,14 @@ class About(RouterHandler):
 
 		@router.message(Command(commands="answer"))
 		async def answer_ticket(msg: Message, command: CommandObject):
-			if msg.from_user.id in self.bot.config.bot.admin_ids:
-				data = command.args
-				if data:
-					ids, text = parse_answer_data(data)
-					if ids and text:
-						send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
-						await broadcast(self.bot.tg, ids, send_message, parse_mode="HTML")
-			else:
-				return
+			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
+			data = command.args
+			if data:
+				ids, text = parse_answer_data(data)
+				if ids and text:
+					send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
+					await broadcast(self.bot.tg, ids, send_message, parse_mode="HTML")
+					await msg.reply("Ваш ответ успешно был отправлен пользователю!")
 		
 
 
@@ -135,3 +143,4 @@ class About(RouterHandler):
 			if text:
 				send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
 				await broadcast(self.bot.tg, [ticket_author_id], send_message, parse_mode="HTML")
+				await msg.reply("Ваш ответ успешно был отправлен пользователю!")

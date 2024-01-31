@@ -4,12 +4,10 @@ import sqlalchemy.orm as sorm
 
 from datetime import datetime, timedelta
 
-from aiogram import Router, types
+from aiogram import Bot, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup
-from aiogram.filters.callback_data import CallbackData
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from aiogram.utils.chat_action import ChatActionSender
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from omsu_bot import utils
@@ -18,7 +16,6 @@ from omsu_bot.fsm import HandlerState
 from omsu_bot.services import calendar_builder
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Group, Subject, User, Student, Teacher, Lesson
-
 
 
 def weeks_difference(start_date, end_date):
@@ -39,6 +36,50 @@ lesson_time = {
 }
 
 
+
+
+def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
+	#return "s"
+	is_teacher = isinstance(target, Group)
+	is_weekday = isinstance(at, int)
+
+	text = f"{lang.weekday_map[at] if is_weekday else at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
+	
+	last_num = 0
+
+	for lesson, subject, ext in lessons:
+		num = lesson.lesson_number
+
+		if is_teacher and last_num == num:
+			if ext:
+				text += f" - {ext.name}\n"
+			last_num = num
+			continue
+
+		if num - last_num > 1:
+			text += "\n"
+		last_num = num
+
+		lesson_bounds = lesson_time.get(num, None)
+		lesson_type_room = f"{lesson.type_lesson} {lesson.room}"
+		lesson_name = subject.name if subject else "Неизвестный"
+
+		if len(lesson_name) + len(lesson_type_room) < 30:
+			text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
+		else:
+			text += f"*{num}. {lesson_name}*\n - {lesson_type_room}\n"
+		
+		if lesson_bounds:
+			text += f" - {lesson_bounds}\n"
+		if ext:
+			text += f" - {ext.name}\n"
+	
+	if last_num == 0:
+		text += " 😄 Занятий нет..."
+	
+	return text
+
+
 class ScheduleForm(StatesGroup):
 	
 	@staticmethod
@@ -46,7 +87,6 @@ class ScheduleForm(StatesGroup):
 		tg_id = context.key.user_id
 		if not bot.db.is_online():
 			await context.clear()
-			logger.error(f"id={tg_id}, {lang.user_error_database_connection}")
 			return dict(
 				text=lang.user_error_database_connection
 			)
@@ -56,7 +96,6 @@ class ScheduleForm(StatesGroup):
 		sess: sorm.Session = bot.db.session
 
 		with sess.begin():
-
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
@@ -64,18 +103,15 @@ class ScheduleForm(StatesGroup):
 				return dict(
 					text=lang.user_error_auth_unknown
 				)
-
-
-			## TIMING ##
 			
 			at = at or datetime.today().date()
 
 			weekday = at.weekday()
-			
 			academic_start = bot.config.schedule.academic_start
 			week_number = weeks_difference(academic_start, at)
 
-			text = f"{at.strftime('%d.%m.%Y')}  -  "
+			target = None
+			lessons = None
 
 			if user.role_id == "student":
 				union = sess.execute(
@@ -84,132 +120,63 @@ class ScheduleForm(StatesGroup):
 					.join(Group, Group.id_ == Student.group_id)
 				).first()
 
-				if not (union and union[0] and union[1]):
-					logger.error(f"id={tg_id}, запись в бд повреждена")
-					return dict(text=lang.user_error_database_logic)
+				if not union: return dict(text=lang.user_error_database_logic)
 				
-				student, group = union
+				target = union[1]
 
 				lessons = sess.execute(
 					sa.select(Lesson, Subject, Teacher)
-					.where(Lesson.group_id == student.group_id, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
+					.where(Lesson.group_id == target.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
 					.order_by(Lesson.lesson_number)
 					.join(Subject, Subject.id_ == Lesson.subject_id, isouter=True)
 					.join(Teacher, Teacher.id_ == Lesson.teacher_id, isouter=True)
-				)
-
-				text += f"{group.name}\n\n"
-				last_num = 0
-
-				for lesson, subject, teacher in lessons:
-					num = lesson.lesson_number
-					if num - last_num > 1:
-						text += "\n"
-					last_num = num
-
-					lesson_bounds = lesson_time.get(num, None)
-					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
-					lesson_name = subject.name if subject else "Неизвестный"
-
-					if len(lesson_name) + len(lesson_type_room) < 30:
-						text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
-					else:
-						text += f"*{num}. {lesson_name}*\n - {lesson_type_room}\n"
-					
-					if lesson_bounds:
-						text += f" - {lesson_bounds}\n"
-					if teacher:
-						text += f" - {teacher.name}\n"
-				
-				if last_num == 0:
-					text += " 😄 Занятий нет..."
-
+				).all()
 			elif user.role_id == "teacher":
-				teacher: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
-				if not teacher:
-					logger.error(f"id={tg_id}, Логическое исключение, запись в бд повреждена")
-					return dict(text=lang.user_error_database_logic)
+				target: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				
+				if not target: return dict(text=lang.user_error_database_logic)
+
 				lessons = sess.execute(
 					sa.select(Lesson, Subject, Group) 
-					.where(Lesson.teacher_id == teacher.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
+					.where(Lesson.teacher_id == target.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
 					.order_by(Lesson.lesson_number)
-					.join(Subject, Subject.id_ == Lesson.subject_id)
-					.join(Group, Group.id_ == Lesson.group_id)
-				)
-
-				text += f"{teacher.name}\n\n"
-				last_num = 0
-
-				for lesson, subject, group  in lessons:
-					num = lesson.lesson_number
-
-					if last_num == num:
-						if group:
-							text += f" - {group.name}\n"
-						last_num = num
-						continue
-
-					if num - last_num > 1:
-						text += "\n"
-					
-					last_num = num
-
-					lesson_bounds = lesson_time.get(num, None)
-					lesson_type_room = f"{lesson.type_lesson}. {lesson.room}"
-					lesson_name = subject.name if subject else "Неизвестный"
-
-					if len(lesson_name) + len(lesson_type_room) < 30:
-						text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
-					else:
-						text += f"*{num}. {lesson_name}*\n - {lesson_type_room}\n"
-					
-					if lesson_bounds:
-						text += f" - {lesson_bounds}\n"
-					if group:
-						text += f" - {group.name}\n"
-				
-				if last_num == 0:
-					text += " 😄 Занятий нет..."
+					.join(Subject, Subject.id_ == Lesson.subject_id, isouter=True)
+					.join(Group, Group.id_ == Lesson.group_id, isouter=True)
+				).all()
+		
+			if not target:
+				return dict(text=lang.user_error_database_logic)
 			
-			await context.update_data(selected_date=at)
+			text = rich_schedule(lessons, at, target)
 
-			builder = InlineKeyboardBuilder()
-			if show_calendar:
-				calendar_builder.build(builder, at)
-			else:
-				builder.button(text="На завтра", callback_data="show_tomorrow")
-				builder.button(text="Календарь", callback_data="show_calendar")
+		
+		await context.update_data(selected_date=at)
 
-				if tg_id in bot.config.bot.admin_ids:
-					builder.button(text="Изменить", callback_data="edit_schedule")
-				builder.adjust(2, 1)
-			
-			return dict(
-				text=text,
-				reply_markup=builder.as_markup()
-			)
+		builder = InlineKeyboardBuilder()
+		if show_calendar:
+			calendar_builder.build(builder, at)
+		else:
+			builder.button(text="На завтра", callback_data="show_tomorrow")
+			builder.button(text="Календарь", callback_data="show_calendar")
+
+			if tg_id in bot.config.bot.admin_ids:
+				builder.button(text="Изменить", callback_data="edit_schedule")
+			builder.adjust(2, 1)
+		
+		return dict(
+			text=text,
+			reply_markup=builder.as_markup()
+		)
 
 	schedule = HandlerState(message_handler=schedule_message)
 
-
 	scope_selection = HandlerState()
-
 
 
 class Schedule(RouterHandler):
 	def __init__(self):
 		super().__init__()
 		router: Router = self.router
-
-		# @router.callback_query(DialogCalendarCallback.filter())
-		# async def process_dialog_calendar(callback_query: CallbackQuery, ):
-		# 	print("123"*1000)
-		# 	selected, date = await DialogCalendar().process_selection(callback_query, callback_data)
-		# 	if selected: 
-		# 		await callback_query.message.answer(
-		# 			f'You selected {date.strftime("%d/%m/%Y")}'
-		# 		)
 
 		@router.callback_query(ScheduleForm.schedule)
 		async def handle_schedule(call: CallbackQuery, state: FSMContext):
@@ -238,10 +205,10 @@ class Schedule(RouterHandler):
 			match call.data:
 				case "show_tomorrow":
 					await call.answer()
-					await ScheduleForm.schedule.message_send(
+					await ScheduleForm.schedule.message_edit(
 						self.bot, 
 						state, 
-						msg.chat, 
+						msg,
 						at=current_date+timedelta(days=1)
 					)
 				case "show_calendar":
@@ -257,3 +224,62 @@ class Schedule(RouterHandler):
 					
 				case _:
 					await call.answer(text="В разработке...")
+		
+	@staticmethod
+	async def schedule_scheduler(bot: Bot, db, config):
+		sess: sorm.Session = db.session
+
+		with sess.begin():
+			users: sa.ScalarResult | None = sess.execute(sa.select(User)).scalars()
+			
+			at = datetime.today().date()+timedelta(days=1)
+
+			weekday = at.weekday()
+			academic_start = config.schedule.academic_start
+			week_number = weeks_difference(academic_start, at)
+
+			target = None
+			lessons = None
+
+			for user in users:
+				if not user:
+					logger.error("An error occurred while trying to send a schedule.")
+					continue
+
+				if user.role_id == "student":
+					union = sess.execute(
+						sa.select(Student, Group)
+						.where(Student.user_id == user.id_)
+						.join(Group, Group.id_ == Student.group_id)
+					).first()
+
+					if not union:
+						logger.error("Logical exception, database entry is corrupted")
+						continue
+					
+					target = union[1]
+
+					lessons = sess.execute(
+						sa.select(Lesson, Subject, Teacher)
+						.where(Lesson.group_id == target.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
+						.order_by(Lesson.lesson_number)
+						.join(Subject, Subject.id_ == Lesson.subject_id, isouter=True)
+						.join(Teacher, Teacher.id_ == Lesson.teacher_id, isouter=True)
+					)
+				elif user.role_id == "teacher":
+					target: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
+					
+					lessons = sess.execute(
+						sa.select(Lesson, Subject, Group) 
+						.where(Lesson.teacher_id == target.id_, Lesson.weekday == weekday, Lesson.academic_weeks.contains((week_number,)))
+						.order_by(Lesson.lesson_number)
+						.join(Subject, Subject.id_ == Lesson.subject_id, isouter=True)
+						.join(Group, Group.id_ == Lesson.group_id, isouter=True)
+					)
+				
+				if not target:
+					logger.error("Logical exception, database entry is corrupted")
+					continue
+
+				text = rich_schedule(lessons, at, target)
+				await bot.send_message(user.tg_id, text, parse_mode="Markdown")

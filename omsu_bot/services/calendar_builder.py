@@ -26,7 +26,7 @@ def build(builder: InlineKeyboardBuilder, at: date):
 		if i == day_now and month == month_now and year == year_now:
 			n = f"[{i}]"
 		elif i == day:
-			n = f"✓{i}"
+			n = f">{i}<" #
 		else:
 			n = str(i)
 		builder.button(text=n, callback_data=f"{i}")

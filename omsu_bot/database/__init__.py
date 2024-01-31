@@ -10,7 +10,7 @@ class Database:
 		self.engine = sa.create_engine(self.url, echo=True)
 	
 	def is_online(self):
-		return not self._session is None
+		return (self._session)
 
 	@property
 	def session(self) -> sorm.Session | None:
@@ -19,8 +19,10 @@ class Database:
 	async def launch(self):
 		await self.create_all_metadata()
 
-		sess = sorm.Session(self.engine)
+		sess = sorm.Session(self.engine, expire_on_commit=True)
 		self._session = sess
+		self.connection = sa.Connection(self.engine)
+		self.connection = self.engine.connect
 
 	async def shutdown(self):
 		if self._session:
