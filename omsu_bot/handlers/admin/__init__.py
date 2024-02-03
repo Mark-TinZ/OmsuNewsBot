@@ -15,7 +15,6 @@ from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import groups
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Group, User, Student, Teacher
-from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +105,7 @@ class AdminForm(StatesGroup):
 			group: Group = sess.execute(sa.Select(Group).where(Group.id_ == group_id)).scalar_one_or_none()
 			group_course = group.course_number
 			group_name = group.name
-			student_count: int = sess.execute(sa.Select(func.count(Student.id_)).where(Student.group_id == group_id)).scalar()
+			student_count: int = sess.execute(sa.Select(sa.func.count(Student.id_)).where(Student.group_id == group_id)).scalar()
 
 
 		if tg_id in bot.config.bot.admin_ids:

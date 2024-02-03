@@ -1,3 +1,4 @@
+import json
 import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
@@ -24,12 +25,12 @@ class SettingsForm(StatesGroup):
 		await context.set_state(self)
 
 		if not bot.db.is_online():
-			logger.error(f"id={context.key.user_id}, {lang.user_error_database_connection}")
+			logger.error("Database error occurred! Failed to connect to the database.")
 			return dict(text=lang.user_error_database_connection)
 
 		tg_id = context.key.user_id
 
-		text = "⚙ *Настройки*\n\n"
+		text = "⚙ *Настройки*\n"
 
 		sess: sorm.Session = bot.db.session
 
@@ -37,8 +38,36 @@ class SettingsForm(StatesGroup):
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
-				logger.error(f"id={context.key.user_id}, Вы не зарегистрированы!")
+				logger.error(f"id={context.key.user_id}, user is not registered!")
 				return dict(text=lang.user_error_auth_unknown)
+			
+			success = False
+			settings_dict: dict = dict()
+			settings_json = user.settings
+
+			if isinstance(settings_json, dict):
+				settings_dict["notifications_enable"] = True
+				settings_dict["schedule_view"] = False
+				settings_json = json.dumps(settings_dict)
+				sess.execute(sa.update(User).where(User.tg_id == tg_id).values(settings=settings_json))
+			else:
+				settings_dict = json.loads(settings_json)
+				if settings_dict.get("notifications_enable", None) is None:
+					logger.warning("Failed to find 'notifications_enable'.")
+					settings_dict["notifications_enable"] = True
+					success = True
+
+				if settings_dict.get("schedule_view", None) is None:
+					logger.warning("Failed to find 'schedule_view'.")
+					settings_dict["schedule_view"] = False
+					success = True
+		
+			text += f"{'🔔' if settings_dict['notifications_enable'] else '🔕'} Уведомление: {'Вкл.' if settings_dict['notifications_enable'] else 'Выкл.'}\n"
+			text += f"Формат расписания: **В разработке**\n\n"
+			
+			if success:
+				settings_json = json.dumps(settings_dict)
+				sess.execute(sa.update(User).where(User.tg_id == tg_id).values(settings=settings_json))
 
 			if user.role_id == "student":
 				union = sess.execute(
@@ -48,7 +77,7 @@ class SettingsForm(StatesGroup):
 				).first()
 
 				if not (union and union[0] and union[1]):
-					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
+					logger.error(f"id={context.key.user_id}, Logical exception, database entry corrupted")
 					return dict(text=lang.user_error_database_logic)
 
 				student, group = union
@@ -62,7 +91,7 @@ class SettingsForm(StatesGroup):
 				).scalar_one_or_none()
 
 				if not teacher:
-					logger.error(f"id={context.key.user_id}, Логическое исключение, запись в бд повреждена")
+					logger.error(f"id={context.key.user_id}, Logical exception, database entry corrupted")
 					return dict(text=lang.user_error_database_logic)
 
 				text += f"*👨‍🏫 Преподаватель\n😎 Имя:* {teacher.name}"
@@ -79,7 +108,7 @@ class SettingsForm(StatesGroup):
 		message_handler=settings_message,
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="🔕/🔔 Беззвучный режим", callback_data="notifications_enable")
+				.button(text="🔕/🔔 Уведомление", callback_data="notifications_enable")
 				.button(text="🖼/📄 Отображение расписания", callback_data="schedule_view")
 				.button(text="❌ Удалить аккаунт", callback_data="account_remove")
 				.adjust(1)
@@ -98,7 +127,7 @@ class Settings(RouterHandler):
 			if await utils.throttling_assert(state): return
 
 			if not self.bot.db.is_online():
-				logger.error(f"id={call.message.from_user.id}, Вы не зарегистрированы!")
+				logger.error("Database error occurred! Failed to connect to the database.")
 				await call.message.edit_text(text=lang.user_error_auth_unknown)
 			
 			
@@ -110,10 +139,10 @@ class Settings(RouterHandler):
 				case "account_remove":
 					await state.clear()
 					with sess.begin():
-						user = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
+						user: User | None = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
 						
 						if not user:
-							logger.error(f"id={call.message.from_user.id}, Вы не зарегистрированы!")
+							logger.error(f"id={call.message.from_user.id}, user is not registered!")
 							await call.message.edit_text(text=lang.user_error_auth_unknown)
 							return
 						
@@ -132,6 +161,27 @@ class Settings(RouterHandler):
 						async with ChatActionSender.upload_video_note(chat_id=call.message.chat.id, bot=self.bot.tg):
 							video_note = FSInputFile("media/video/delete_data.mp4")
 							await call.message.answer_video_note(video_note)
+				case "notifications_enable":
+					with sess.begin():
+						user: User | None = sess.execute(sa.select(User).where(User.tg_id == actor.id)).scalar_one_or_none()
+
+						if not user:
+							logger.error(f"id={call.message.from_user.id}, user is not registered!")
+							await call.message.edit_text(text=lang.user_error_auth_unknown)
+							return
+						
+						settings_json = user.settings
+						settings_dict = json.loads(settings_json)
+						if settings_dict.get("notifications_enable", None) is None:
+							logger.error("Failed to find 'notifications_enable'.")
+							await call.message.edit_text(text=lang.user_error_try_again)
+							return
+						
+						settings_dict["notifications_enable"] = not settings_dict["notifications_enable"]
+						settings_json = json.dumps(settings_dict)
+						sess.execute(sa.update(User).where(User.tg_id == actor.id).values(settings=settings_json))
+
+					await SettingsForm.settings.message_edit(self.bot, state, call.message.message_id, call.message.chat.id)
 				case _:
 					await call.answer(text="В разработке...")
 						

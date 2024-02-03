@@ -1,3 +1,4 @@
+import json
 import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
@@ -22,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 class RegistrationForm(StatesGroup):
-	
 	greetings_approval = HandlerState(
 		text=lang.user_greetings,
 		parse_mode="HTML",
@@ -53,9 +53,7 @@ class RegistrationForm(StatesGroup):
 				.as_markup()
 	)
 
-
 	### TEACHER REGISTRATION ###
-
 	teacher_auth = HandlerState(
 		text=(
 			"👨‍🏫 *Преподаватель*\n\nОтправьте сообщением ваш *ключ авторизации*:"
@@ -65,7 +63,6 @@ class RegistrationForm(StatesGroup):
 				.button(text="Отмена", callback_data="return")
 				.as_markup()
 	)
-
 
 	async def teacher_approval_message(self, bot, state: FSMContext):
 		await state.set_state(self)
@@ -80,9 +77,7 @@ class RegistrationForm(StatesGroup):
 
 	teacher_approval = HandlerState(message_handler=teacher_approval_message)
 
-
 	### STUDENT REGISTRATION ###
-
 	@staticmethod
 	async def data_approval_message(self, bot, state: FSMContext):
 		await state.set_state(self)
@@ -101,11 +96,6 @@ class RegistrationForm(StatesGroup):
 		)
 
 	data_approval = HandlerState(message_handler=data_approval_message)
-
-
-	
-
-
 
 
 class Registration(RouterHandler):
@@ -141,14 +131,12 @@ class Registration(RouterHandler):
 			if call.data == "approve":
 				await call.answer()
 				await RegistrationForm.warning_approval.message_edit(self.bot, state, call.message)
-		
 
 		@router.callback_query(RegistrationForm.warning_approval)
 		async def handle_eula_approval(call: CallbackQuery, state: FSMContext):
 			if call.data == "approve":
 				await call.answer()
 				await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
-		
 
 		@router.callback_query(RegistrationForm.role_selection)
 		async def handle_role_selection(call: CallbackQuery, state: FSMContext):
@@ -206,7 +194,6 @@ class Registration(RouterHandler):
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
 				await utils.register_context(state, ans)
-		
 
 		@router.callback_query(RegistrationForm.teacher_approval)
 		async def handle_teacher_approval(call: CallbackQuery, state: FSMContext):
@@ -238,7 +225,11 @@ class Registration(RouterHandler):
 				teacher = sess.execute(sa.select(Teacher).where(Teacher.tg_authkey == authkey, Teacher.user_id == sa.null(), Teacher.name == name)).scalar_one_or_none()
 
 				if teacher:
-					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="teacher")).inserted_primary_key
+					settings_dict: dict = dict()
+					settings_dict["notifications_enable"] = True
+					settings_dict["schedule_view"] = False
+					settings_json = json.dumps(settings_dict)
+					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="teacher", settings=settings_json)).inserted_primary_key
 					if pk:
 						teacher.user_id = pk[0]
 						success = True
@@ -258,52 +249,7 @@ class Registration(RouterHandler):
 				)
 				async with ChatActionSender.upload_video_note(chat_id=call.chat.id, bot=self.bot.tg):
 					video_note = FSInputFile("media/video/cat-huh.mp4")
-					await call.message.answer_video_note(video_note)
-			
-
-
-
-		# @router.callback_query(RegistrationForm.course_selection)
-		# async def handle_course_selection(call: CallbackQuery, state: FSMContext):
-		# 	if await utils.throttling_assert(state): return
-			
-		# 	await call.answer()
-			
-		# 	if call.data == "return":
-		# 		await RegistrationForm.role_selection.message_edit(self.bot, state, call.message)
-		# 		return
-			
-		# 	async with ChatActionSender.typing(chat_id=call.message.chat.id, bot=self.bot.tg):
-		# 		if not call.data.isdigit():
-		# 			return
-				
-		# 		course_number = int(call.data)
-		# 		await state.update_data(course_number=course_number)
-		# 		await RegistrationForm.group_selection.message_edit(self.bot, state, call.message)
-		
-		
-		# @router.callback_query(RegistrationForm.group_selection)
-		# async def handle_group_selection(call: CallbackQuery, state: FSMContext):
-		# 	if await utils.throttling_assert(state): return
-			
-		# 	await call.answer()
-			
-		# 	if call.data == "return":
-		# 		await RegistrationForm.course_selection.message_edit(self.bot, state, call.message)
-		# 		return
-			
-		# 	c = call.data
-		# 	try:
-		# 		spl: int = c.find("/")
-		# 		group_id: int = int(c[:spl])
-		# 		group_name: str = c[(spl+1):]
-		# 	except:
-		# 		return
-			
-		# 	await state.update_data(group_id=group_id, group_name=group_name)
-
-		# 	await RegistrationForm.data_approval.message_edit(self.bot, state, call.message)
-		
+					await call.message.answer_video_note(video_note)	
 
 		@router.callback_query(RegistrationForm.data_approval)
 		async def handle_data_approval(call: CallbackQuery, state: FSMContext):
@@ -337,9 +283,13 @@ class Registration(RouterHandler):
 			tg_id = call.from_user.id
 			sess: sorm.Session = self.bot.db.session
 			with sess.begin():
-				group = sess.execute(sa.select(Group).where(Group.id_ == group_id, Group.is_enabled == True)).scalar_one_or_none()
+				group: Group | None  = sess.execute(sa.select(Group).where(Group.id_ == group_id, Group.is_enabled == True)).scalar_one_or_none()
 				if group:
-					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student")).inserted_primary_key
+					settings_dict: dict = dict()
+					settings_dict["notifications_enable"] = True
+					settings_dict["schedule_view"] = False
+					settings_json = json.dumps(settings_dict)
+					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student", settings=settings_json)).inserted_primary_key
 					if pk:
 						student = Student(user_id=pk[0], group_id=group_id)
 						sess.add(student)
