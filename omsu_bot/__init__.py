@@ -1,12 +1,9 @@
 import logging
-from sched import scheduler
 from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.types import TelegramObject
 from typing import Any, Awaitable, Callable, Dict
-
-from pytz import timezone
 
 from omsu_bot.config import Config
 from omsu_bot.database import Database
@@ -17,7 +14,7 @@ from omsu_bot.handlers.about import About
 from omsu_bot.handlers.schedule import Schedule
 from omsu_bot.handlers.settings import Settings
 from omsu_bot.handlers.registration import Registration
-from omsu_bot.services.broadcaster import broadcast
+from omsu_bot.services.broadcaster import Broadcast
 
 # debug import
 # from omsu_bot.handlers.test import Test
@@ -53,7 +50,8 @@ class OMSUBot:
 		self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
 						   cfg.db.database)
 		
-		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=23, minute=49, args=(self.tg, self.db, self.config))
+		
+		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=0, args=(self.tg, self.db, self.config))
 
 		handler_list = [Registration(), Menu(), Schedule(), Admin(), Settings(), About(), Groups()]
 
@@ -69,7 +67,8 @@ class OMSUBot:
 				await h.enable(self)
 
 			tg = self.tg
-			await broadcast(tg, self.config.bot.admin_ids, "Бот запущен")
+			mailing = Broadcast(tg, self.config.bot.admin_ids)
+			await mailing.send_message(text="Бот запущен")
 
 			await tg.delete_webhook(drop_pending_updates=True)
 

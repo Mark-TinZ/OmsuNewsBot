@@ -1,20 +1,20 @@
+import json
 import logging
 import sqlalchemy as sa
 import sqlalchemy.orm as sorm
 
-from datetime import datetime, timedelta
-
 from aiogram import Bot, Router
-from aiogram.fsm.context import FSMContext
+from datetime import datetime, timedelta
 from aiogram.fsm.state import StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
-from omsu_bot.services import calendar_builder
 from omsu_bot.handlers import RouterHandler
+from omsu_bot.services import calendar_builder, broadcaster
 from omsu_bot.database.models import Group, Subject, User, Student, Teacher, Lesson
 
 
@@ -39,11 +39,9 @@ lesson_time = {
 
 
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
-	#return "s"
 	is_teacher = isinstance(target, Group)
 	is_weekday = isinstance(at, int)
-
-	text = f"{lang.weekday_map[at] if is_weekday else at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
+	text = f"{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
 	
 	last_num = 0
 
@@ -229,21 +227,48 @@ class Schedule(RouterHandler):
 	async def schedule_scheduler(bot: Bot, db, config):
 		sess: sorm.Session = db.session
 
+		at = datetime.today().date()+timedelta(days=1)
+
+		weekday = at.weekday()
+
+		if weekday == 6:
+			return
+
+		academic_start = config.schedule.academic_start
+		week_number = weeks_difference(academic_start, at)
+
+		target = None
+		lessons = None
+
 		with sess.begin():
 			users: sa.ScalarResult | None = sess.execute(sa.select(User)).scalars()
-			
-			at = datetime.today().date()+timedelta(days=1)
-
-			weekday = at.weekday()
-			academic_start = config.schedule.academic_start
-			week_number = weeks_difference(academic_start, at)
-
-			target = None
-			lessons = None
 
 			for user in users:
 				if not user:
 					logger.error("An error occurred while trying to send a schedule.")
+					continue
+				
+				settings_dict: dict = dict()
+				settings_json = user.settings
+
+				if isinstance(settings_json, dict):
+					settings_dict["notifications_enable"] = True
+				else:
+					settings_dict = json.loads(settings_json)
+					if settings_dict.get("notifications_enable", None) is None:
+						logger.warning("Failed to find 'notifications_enable'.")
+						settings_dict["notifications_enable"] = True
+				
+				settings_json = json.dumps(settings_dict)
+				sess.execute(sa.update(User).where(User.tg_id == user.tg_id).values(settings=settings_json))
+
+				settings_dict = json.loads(settings_json)
+
+				if settings_dict.get("notifications_enable", None) is None:
+					logger.warning("Failed to find 'notifications_enable'.")
+					continue
+
+				if not settings_dict["notifications_enable"]:
 					continue
 
 				if user.role_id == "student":
@@ -282,4 +307,5 @@ class Schedule(RouterHandler):
 					continue
 
 				text = rich_schedule(lessons, at, target)
-				await bot.send_message(user.tg_id, text, parse_mode="Markdown")
+				mailing = broadcaster.Broadcast(bot, [user.tg_id])
+				await mailing.send_message(text=text, parse_mode="Markdown")

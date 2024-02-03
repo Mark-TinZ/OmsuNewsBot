@@ -43,9 +43,9 @@ def build(builder: InlineKeyboardBuilder, at: date):
 	builder.adjust(7)
 
 	builder.row(
-		InlineKeyboardButton(text="<", callback_data="month_prev"),
+		InlineKeyboardButton(text="◀", callback_data="month_prev"),
 		InlineKeyboardButton(text=f"{month_name}, {year}", callback_data="mlabel"),
-		InlineKeyboardButton(text=">", callback_data="month_next")
+		InlineKeyboardButton(text="▶", callback_data="month_next")
 	)
 
 

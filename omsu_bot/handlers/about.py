@@ -2,19 +2,17 @@ import re
 import logging
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandObject
 from aiogram.fsm.state import StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters import Filter
-from aiogram.utils.magic_filter import MagicFilter
 
 from omsu_bot import utils
 import omsu_bot.data.language as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
-from omsu_bot.services.broadcaster import Broadcast, broadcast
+from omsu_bot.services.broadcaster import Broadcast
 
 logger = logging.getLogger(__name__)
 
@@ -86,21 +84,11 @@ class About(RouterHandler):
 			if not text or len(text) > 4000:
 				return await msg.reply(lang.user_about_idea_error_len)
 			
-			rpl_msg = dict(
-				text=(
-					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
-					f"💡 <i>{text}</i>\n\n"
-					f"Пользователь: @{msg.from_user.username}"
-				),
-				parse_mode="HTML"
-			)
-
-			# await broadcast(self.bot.tg, self.bot.config.bot.admin_ids, **rpl_msg)
 			mailing = Broadcast(self.bot.tg, self.bot.config.bot.admin_ids)
 			await mailing.send_message(
 				text=(
 					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
-					f"💡 <i>{text}</i>\n\n"
+					f"💡 {text}\n\n"
 					f"Пользователь: @{msg.from_user.username}"
 				),
 				parse_mode="HTML"
@@ -125,7 +113,8 @@ class About(RouterHandler):
 				ids, text = parse_answer_data(data)
 				if ids and text:
 					send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
-					await broadcast(self.bot.tg, ids, send_message, parse_mode="HTML")
+					mailing = Broadcast(self.bot.tg, ids)
+					await mailing.send_message(text=send_message, parse_mode="HTML")
 					await msg.reply("Ваш ответ успешно был отправлен пользователю!")
 		
 
@@ -142,5 +131,6 @@ class About(RouterHandler):
 
 			if text:
 				send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
-				await broadcast(self.bot.tg, [ticket_author_id], send_message, parse_mode="HTML")
+				mailing = Broadcast(self.bot.tg, [ticket_author_id])
+				await mailing.send_message(text=send_message, parse_mode="HTML")
 				await msg.reply("Ваш ответ успешно был отправлен пользователю!")

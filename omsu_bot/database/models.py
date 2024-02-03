@@ -13,7 +13,7 @@ class User(Base):
 	id_ = sa.Column("id", sa.Integer, primary_key=True)
 	tg_id = sa.Column(sa.BigInteger, nullable=False)
 	role_id = sa.Column(sa.String(64), nullable=False, default="")
-	settings =  sa.Column(sa.JSON(), default=dict())
+	settings =  sa.Column(sa.JSON(), default="{}")
 
 class Teacher(Base):
 	__tablename__ = "teacher"
