@@ -24,8 +24,6 @@ class Broadcast():
 
 
 	async def send_message(self, *args, **kwargs) -> bool:
-		import tracemalloc
-		tracemalloc.start()
 		for chat_id in self.chat_ids:
 			try:
 				await self.bot.send_message(

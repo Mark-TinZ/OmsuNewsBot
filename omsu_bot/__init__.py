@@ -18,7 +18,7 @@ from omsu_bot.services.broadcaster import Broadcast
 
 # debug import
 # from omsu_bot.handlers.test import Test
-# from omsu_bot.handlers.haduli import Haduli
+from omsu_bot.handlers.scope_work import ScopeWork
 
 class TaskScheduler(BaseMiddleware):
 	def __init__(self, scheduler: AsyncIOScheduler) -> None:
@@ -51,9 +51,9 @@ class OMSUBot:
 						   cfg.db.database)
 		
 		
-		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=0, args=(self.tg, self.db, self.config))
+		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=21, args=(self.tg, self.db, self.config))
 
-		handler_list = [Registration(), Menu(), Schedule(), Admin(), Settings(), About(), Groups()]
+		handler_list = [Registration(), Menu(), Schedule(), Admin(), Settings(), About(), Groups(), ScopeWork()]
 
 		self.handlers = handler_list
 

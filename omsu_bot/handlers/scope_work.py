@@ -37,29 +37,35 @@ def parse_schedule_text(text: str) -> list:
 	return result
 
 
-class HaduliForm(StatesGroup):
-	haduli_eba = HandlerState(
-		text="Дав-а-й е-ба-шш..."
+class ScopeWorkForm(StatesGroup):
+	scope_work = HandlerState(
+		text="Ладно, для начала просто напиши уч. недели)\nНе забудь нажать 'Отмена' после работы.",
+		reply_markup=
+			InlineKeyboardBuilder()
+			.button(text="Отмена", callback_data="cancel")
+			.as_markup()
 	)
 
 
-class Haduli(RouterHandler):
+class ScopeWork(RouterHandler):
 	def __init__(self):
 		super().__init__()
 		
 		router: Router = self.router
 
-		@router.message(Command("test"))
+		@router.message(Command("scope_work"))
 		async def handle_haduli(msg: Message, state: FSMContext) -> None:
-			await HaduliForm.haduli_eba.message_send(self.bot, state, msg.chat, msg.message_id)
+			await ScopeWorkForm.scope_work.message_send(self.bot, state, msg.chat, msg.message_id)
 
-		@router.message(Command("putin"))
-		async def handle_haduli(msg: Message, state: FSMContext) -> None:
-			await msg.answer_video_note(FSInputFile("media/video/putin.mp4"))
-
-		@router.message(HaduliForm.haduli_eba)
+		@router.message(ScopeWorkForm.scope_work)
 		async def shadow_fight(msg: Message, state: FSMContext) -> None:
 			eba_list = parse_schedule_text(msg.text)
 			res = "`{" + ", ".join(map(str, eba_list)) + "}`"
 			await msg.answer(res, parse_mode="Markdown")
+
+		@router.callback_query(ScopeWorkForm.scope_work)
+		async def cancel_work(call: CallbackQuery, state: FSMContext) -> None:
+			await call.answer()
+			await call.message.answer(text="Готово, задача закрыта.")
+			await state.clear() 
 
