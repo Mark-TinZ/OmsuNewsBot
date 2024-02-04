@@ -1,3 +1,4 @@
+from ast import arg
 import pandas
 import logging
 import sqlalchemy as sa
@@ -27,4 +28,8 @@ class ExelModel(RouterHandler):
 
 		@router.message(Command(commands="get_exel"))
 		async def get_exel(msg: Message, command: CommandObject):
-			pass
+			args = command.args
+
+		@router.message(Command(commands="load_exel"))
+		async def looad_exel(msg: Message, command: CommandObject):
+			args = command.args

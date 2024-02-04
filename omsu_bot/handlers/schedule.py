@@ -248,27 +248,27 @@ class Schedule(RouterHandler):
 					logger.error("An error occurred while trying to send a schedule.")
 					continue
 				
+				success = False
 				settings_dict: dict = dict()
 				settings_json = user.settings
 
 				if isinstance(settings_json, dict):
+					logger.error("Type Error: 'settings_json' is of type 'dict'")
 					settings_dict["notifications_enable"] = True
+					success = True
 				else:
 					settings_dict = json.loads(settings_json)
 					if settings_dict.get("notifications_enable", None) is None:
 						logger.warning("Failed to find 'notifications_enable'.")
 						settings_dict["notifications_enable"] = True
+						success = True
 				
-				settings_json = json.dumps(settings_dict)
-				sess.execute(sa.update(User).where(User.tg_id == user.tg_id).values(settings=settings_json))
+				if success:
+					settings_json = json.dumps(settings_dict)
+					sess.execute(sa.update(User).where(User.tg_id == user.tg_id).values(settings=settings_json))
 
 				settings_dict = json.loads(settings_json)
-
-				if settings_dict.get("notifications_enable", None) is None:
-					logger.warning("Failed to find 'notifications_enable'.")
-					continue
-
-				if not settings_dict["notifications_enable"]:
+				if settings_dict["notifications_enable"] == False:
 					continue
 
 				if user.role_id == "student":

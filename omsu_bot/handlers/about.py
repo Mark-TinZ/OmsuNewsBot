@@ -108,9 +108,9 @@ class About(RouterHandler):
 		@router.message(Command(commands="answer"))
 		async def answer_ticket(msg: Message, command: CommandObject):
 			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
-			data = command.args
-			if data:
-				ids, text = parse_answer_data(data)
+			args = command.args
+			if args:
+				ids, text = parse_answer_data(args)
 				if ids and text:
 					send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
 					mailing = Broadcast(self.bot.tg, ids)
