@@ -39,7 +39,7 @@ lesson_time = {
 
 
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
-	is_teacher = isinstance(target, Group)
+	is_teacher = isinstance(target, Teacher)
 	is_weekday = isinstance(at, int)
 	text = f"{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
 	
@@ -241,34 +241,22 @@ class Schedule(RouterHandler):
 		lessons = None
 
 		with sess.begin():
-			users: sa.ScalarResult | None = sess.execute(sa.select(User)).scalars()
+			users: sa.ScalarResult = sess.execute(sa.select(User)).scalars()
 
 			for user in users:
 				if not user:
 					logger.error("An error occurred while trying to send a schedule.")
 					continue
-				
-				success = False
-				settings_dict: dict = dict()
+
 				settings_json = user.settings
-
-				if isinstance(settings_json, dict):
-					logger.error("Type Error: 'settings_json' is of type 'dict'")
-					settings_dict["notifications_enable"] = True
-					success = True
-				else:
-					settings_dict = json.loads(settings_json)
-					if settings_dict.get("notifications_enable", None) is None:
-						logger.warning("Failed to find 'notifications_enable'.")
-						settings_dict["notifications_enable"] = True
-						success = True
+				try:
+					settings_dict = settings_json if isinstance(settings_json, dict) else json.loads(settings_json)
+				except json.JSONDecodeError:
+					settings_dict = dict()
 				
-				if success:
-					settings_json = json.dumps(settings_dict)
-					sess.execute(sa.update(User).where(User.tg_id == user.tg_id).values(settings=settings_json))
+				notifications_enabled = settings_dict.get("notifications_enabled", True)
 
-				settings_dict = json.loads(settings_json)
-				if settings_dict["notifications_enable"] == False:
+				if not notifications_enabled:
 					continue
 
 				if user.role_id == "student":
@@ -292,7 +280,7 @@ class Schedule(RouterHandler):
 						.join(Teacher, Teacher.id_ == Lesson.teacher_id, isouter=True)
 					)
 				elif user.role_id == "teacher":
-					target: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
+					target: Teacher | None = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 					
 					lessons = sess.execute(
 						sa.select(Lesson, Subject, Group) 
@@ -306,6 +294,6 @@ class Schedule(RouterHandler):
 					logger.error("Logical exception, database entry is corrupted")
 					continue
 
-				text = rich_schedule(lessons, at, target)
+				text = "Ваше расписание на завтра:\n" + rich_schedule(lessons, at, target)
 				mailing = broadcaster.Broadcast(bot, [user.tg_id])
 				await mailing.send_message(text=text, parse_mode="Markdown")

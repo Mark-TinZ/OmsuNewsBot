@@ -46,15 +46,15 @@ class SettingsForm(StatesGroup):
 			settings_json = user.settings
 
 			if isinstance(settings_json, dict):
-				settings_dict["notifications_enable"] = True
+				settings_dict["notifications_enabled"] = True
 				settings_dict["schedule_view"] = False
 				settings_json = json.dumps(settings_dict)
 				sess.execute(sa.update(User).where(User.tg_id == tg_id).values(settings=settings_json))
 			else:
 				settings_dict = json.loads(settings_json)
-				if settings_dict.get("notifications_enable", None) is None:
+				if settings_dict.get("notifications_enabled", None) is None:
 					logger.warning("Failed to find 'notifications_enable'.")
-					settings_dict["notifications_enable"] = True
+					settings_dict["notifications_enabled"] = True
 					success = True
 
 				if settings_dict.get("schedule_view", None) is None:
@@ -62,7 +62,7 @@ class SettingsForm(StatesGroup):
 					settings_dict["schedule_view"] = False
 					success = True
 		
-			text += f"{'🔔' if settings_dict['notifications_enable'] else '🔕'} Уведомление: {'Вкл.' if settings_dict['notifications_enable'] else 'Выкл.'}\n"
+			text += f"{'🔔' if settings_dict['notifications_enabled'] else '🔕'} Уведомление: {'Вкл.' if settings_dict['notifications_enabled'] else 'Выкл.'}\n"
 			text += f"Формат расписания: **В разработке**\n\n"
 			
 			if success:
@@ -172,12 +172,12 @@ class Settings(RouterHandler):
 						
 						settings_json = user.settings
 						settings_dict = json.loads(settings_json)
-						if settings_dict.get("notifications_enable", None) is None:
-							logger.error("Failed to find 'notifications_enable'.")
+						if settings_dict.get("notifications_enabled", None) is None:
+							logger.error("Failed to find 'notifications_enabled'.")
 							await call.message.edit_text(text=lang.user_error_try_again)
 							return
 						
-						settings_dict["notifications_enable"] = not settings_dict["notifications_enable"]
+						settings_dict["notifications_enabled"] = not settings_dict["notifications_enabled"]
 						settings_json = json.dumps(settings_dict)
 						sess.execute(sa.update(User).where(User.tg_id == actor.id).values(settings=settings_json))
 
