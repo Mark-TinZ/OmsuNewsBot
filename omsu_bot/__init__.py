@@ -51,7 +51,7 @@ class OMSUBot:
 						   cfg.db.database)
 		
 		
-		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=21, args=(self.tg, self.db, self.config))
+		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=0, args=(self.tg, self.db, self.config))
 
 		handler_list = [Registration(), Menu(), Schedule(), Admin(), Settings(), About(), Groups(), ScopeWork()]
 

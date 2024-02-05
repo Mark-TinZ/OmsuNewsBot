@@ -286,7 +286,7 @@ class Registration(RouterHandler):
 				group: Group | None  = sess.execute(sa.select(Group).where(Group.id_ == group_id, Group.is_enabled == True)).scalar_one_or_none()
 				if group:
 					settings_dict: dict = dict()
-					settings_dict["notifications_enable"] = True
+					settings_dict["notifications_enabled"] = True
 					settings_dict["schedule_view"] = False
 					settings_json = json.dumps(settings_dict)
 					pk = sess.execute(sa.insert(User).values(tg_id=tg_id, role_id="student", settings=settings_json)).inserted_primary_key
