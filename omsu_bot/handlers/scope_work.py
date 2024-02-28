@@ -53,6 +53,10 @@ class ScopeWork(RouterHandler):
 		
 		router: Router = self.router
 
+		@router.message(Command("dana"))
+		async def handle_haduli(msg: Message, state: FSMContext) -> None:
+			await msg.answer_video_note(FSInputFile("media/video/dana.mp4"))
+
 		@router.message(Command("scope_work"))
 		async def handle_haduli(msg: Message, state: FSMContext) -> None:
 			await ScopeWorkForm.scope_work.message_send(self.bot, state, msg.chat, msg.message_id)

@@ -20,57 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class AdminForm(StatesGroup):
-	# @staticmethod
-	# async def admin_message(self, bot, context: FSMContext):
-	# 	tg_id = context.key.user_id
-	# 	if tg_id in bot.config.admin_ids:
-	# 		return dict(
-	# 			text=lang.user_admin_description,
-	# 			reply_markup=
-	# 				InlineKeyboardBuilder()
-	# 				.button(text="Расписание", callback_data="admin_schedule")
-	# 				.as_markup(),
-	# 			register_context=True
-	# 		)
-
-	# 	if not bot.db.is_online(): return dict(text=lang.user_error_database_connection)
-
-	# 	sess: sorm.Session = bot.db.session
-
-	# 	with sess.begin():
-	# 		user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
-
-	# 		if not user:
-	# 			logger.info(f"tg_id={tg_id} не зарегистрирован!")
-	# 			return dict(text=lang.user_error_auth_unknown)
-
-	# 		if user.role_id == "student":
-	# 			union = sess.execute(
-	# 				sa.select(Student, Group)
-	# 				.where(Student.user_id == user.id_)
-	# 				.join(Group, Student.group_id == Group.id_)
-	# 			).first()
-
-	# 			if not union or len(union) != 2:
-	# 				logger.error(f"tg_id={tg_id}, user_id={user.id_} отсуствует запись student или group!")
-	# 				return dict(text=lang.user_error_database_logic)
-
-	# 			student, group = union
-
-	# 			if student.is_moderator:
-	# 				await context.set_state(self)
-	# 				return dict(
-	# 					text=lang.user_admin_description,
-	# 					reply_markup=
-	# 						InlineKeyboardBuilder()
-	# 						.button(text=group.name, callback_data="schedule")
-	# 						.as_markup(),
-	# 					register_context=True
-	# 				)
-				
-	# 			return None
-	
-
 	admin = HandlerState(
 		text="*🛠️ Админ-меню*\n\n",
 		reply_markup=
@@ -122,21 +71,21 @@ class AdminForm(StatesGroup):
 
 
 	@staticmethod
-	async def schedule_message(self, bot, context: FSMContext):
+	async def schedule_message(self, bot, context: FSMContext) -> None:
 		pass
 
 
 
 
 class Admin(RouterHandler):
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		
 		router: Router = self.router
 
 
 		@router.callback_query(AdminForm.admin)
-		async def handle_admin(call: CallbackQuery, state: FSMContext):
+		async def handle_admin(call: CallbackQuery, state: FSMContext) -> None:
 			if await utils.throttling_assert(state, count=5): return
 			tg_id = call.from_user.id
 			

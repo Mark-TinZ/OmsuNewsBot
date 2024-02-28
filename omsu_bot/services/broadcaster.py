@@ -41,7 +41,8 @@ class Broadcast():
 					disable_notification=self.disable_notification,
 					**kwargs
 				)
-			
+			except exceptions.TelegramForbiddenError:
+				logger.error(f"Forbidden seding message to the user ({chat_id})")			
 
 	async def send_photo(self, *args, **kwargs) -> bool:
 		for chat_id in self.chat_ids:

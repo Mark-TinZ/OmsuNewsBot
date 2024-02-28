@@ -1,4 +1,5 @@
 import logging
+
 from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -32,7 +33,7 @@ class TaskScheduler(BaseMiddleware):
 class OMSUBot:
 	tg: Bot
 	
-	def __init__(self, cfg: Config):
+	def __init__(self, cfg: Config) -> None:
 		self.config = cfg
 		
 		scheduler = AsyncIOScheduler(timezone=self.config.bot.timezone)
@@ -57,7 +58,7 @@ class OMSUBot:
 
 		self.handlers = handler_list
 
-	async def launch(self):
+	async def launch(self) -> None:
 		try:
 			await self.db.launch()
 			
@@ -76,10 +77,11 @@ class OMSUBot:
 		finally:
 			await self.shutdown()
 	
-	async def shutdown(self):
+	async def shutdown(self) -> None:
 		logging.error("Bot shutting down...")
 		await self.db.shutdown()
 		logging.error("Bot shutdown success!")
+		logging.shutdown()
 
 
 def get_fsm_storage(cfg: Config) -> MemoryStorage:

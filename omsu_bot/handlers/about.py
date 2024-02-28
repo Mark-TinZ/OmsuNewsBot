@@ -55,13 +55,13 @@ class AboutForm(StatesGroup):
 
 
 class About(RouterHandler):
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		
 		router: Router = self.router
 
 		@router.callback_query(AboutForm.about)
-		async def start_ticket(call: CallbackQuery, state: FSMContext):
+		async def start_ticket(call: CallbackQuery, state: FSMContext) -> None:
 			data = call.data
 
 			match data:
@@ -73,7 +73,7 @@ class About(RouterHandler):
 					await call.answer(text="В разработке...")
 		
 		@router.message(AboutForm.about_idea_ticket)
-		async def about_idea_ticket(msg: Message, state: FSMContext):
+		async def about_idea_ticket(msg: Message, state: FSMContext) -> Message | None:
 			if await utils.throttling_assert(state): return
 			
 			text = msg.text
@@ -98,7 +98,7 @@ class About(RouterHandler):
 
 
 		@router.callback_query(AboutForm.about_idea_ticket)
-		async def about_idea_ticket_call(call: CallbackQuery, state: FSMContext):
+		async def about_idea_ticket_call(call: CallbackQuery, state: FSMContext) -> None:
 			data = call.data 
 			if data == "cancel":
 				await AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
@@ -106,7 +106,7 @@ class About(RouterHandler):
 				await call.answer(text="В разработке...")
 
 		@router.message(Command(commands="answer"))
-		async def answer_ticket(msg: Message, command: CommandObject):
+		async def answer_ticket(msg: Message, command: CommandObject) -> None:
 			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
 			args = command.args
 			if args:
@@ -120,7 +120,7 @@ class About(RouterHandler):
 
 
 		@router.message(F.reply_to_message & F.reply_to_message.text & F.reply_to_message.text.regexp(r"^Тикет: #id(\d+)\n").as_("ticket_author_id"))
-		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match):
+		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match) -> None:
 			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
 
 			ticket_author_id = ticket_author_id.group(1)
