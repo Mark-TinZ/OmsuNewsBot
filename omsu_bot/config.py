@@ -16,7 +16,7 @@ class DbConfig:
     port: int = 5432
 
     @staticmethod
-    def from_env(env: Env):
+    def from_env(env: Env) -> "DbConfig":
         host = env.str("DB_HOST")
         password = env.str("DB_PASSWORD")
         user = env.str("DB_USERNAME")
@@ -35,7 +35,7 @@ class BotConfig:
     timezone: str
 
     @staticmethod
-    def from_env(env: Env):
+    def from_env(env: Env) -> "BotConfig":
         token = env.str("BOT_TOKEN")
         admin_ids = list(map(int, env.list("ADMINS")))
         timezone = env.str("TIMEZONE")
@@ -46,7 +46,7 @@ class BotConfig:
 class ScheduleConfig():
     academic_start: date
     @staticmethod
-    def from_env(env: Env):
+    def from_env(env: Env) -> "ScheduleConfig":
         academic_start = datetime.strptime(env.str("SCH_ACADEMIC_START"), "%d.%m.%Y").date()
         print(academic_start)
         return ScheduleConfig(academic_start=academic_start)
@@ -59,7 +59,7 @@ class Config:
     db: Optional[DbConfig] = None
 
 
-def load_config(path: str = None) -> Config:
+def load_config(path: str) -> Config:
     env = Env()
 	
     env.read_env(path, override=True)

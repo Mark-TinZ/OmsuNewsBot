@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class SettingsForm(StatesGroup):
 	@staticmethod
-	async def settings_message(self, bot, context: FSMContext):
+	async def settings_message(self, bot, context: FSMContext) -> dict[str, str]:
 		await context.set_state(self)
 
 		if not bot.db.is_online():
@@ -117,13 +117,13 @@ class SettingsForm(StatesGroup):
 
 
 class Settings(RouterHandler):
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		
 		router: Router = self.router
 
 		@router.callback_query(SettingsForm.settings)
-		async def handle_settings(call: CallbackQuery, state: FSMContext):
+		async def handle_settings(call: CallbackQuery, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			if not self.bot.db.is_online():
