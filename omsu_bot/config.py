@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import time
-from typing import Optional
+from typing import Optional, Union
 from datetime import date, datetime
 from environs import Env
 import environs
@@ -31,7 +31,7 @@ class DbConfig:
 @dataclass
 class BotConfig:
     token: str
-    admin_ids: list[int]
+    admin_ids: list[Union[int, str]]
     timezone: str
 
     @staticmethod
@@ -39,7 +39,7 @@ class BotConfig:
         token = env.str("BOT_TOKEN")
         admin_ids = list(map(int, env.list("ADMINS")))
         timezone = env.str("TIMEZONE")
-        return BotConfig(token=token, admin_ids=admin_ids, timezone=timezone)
+        return BotConfig(token=token, admin_ids=admin_ids, timezone=timezone) # type: ignore
 
 
 @dataclass

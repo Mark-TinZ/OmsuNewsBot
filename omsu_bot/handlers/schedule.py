@@ -111,7 +111,7 @@ class ScheduleForm(StatesGroup):
 			target = None
 			lessons = None
 
-			if user.role_id == "student":
+			if user.role_id == "student": # type: ignore
 				union = sess.execute(
 					sa.select(Student, Group)
 					.where(Student.user_id == user.id_)
@@ -129,7 +129,7 @@ class ScheduleForm(StatesGroup):
 					.join(Subject, Subject.id_ == Lesson.subject_id, isouter=True)
 					.join(Teacher, Teacher.id_ == Lesson.teacher_id, isouter=True)
 				).all()
-			elif user.role_id == "teacher":
+			elif user.role_id == "teacher": # type: ignore
 				target: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				
 				if not target: return dict(text=lang.user_error_database_logic)

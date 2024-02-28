@@ -1,11 +1,13 @@
+import logging
 
-from aiogram import Bot
+from aiogram import Bot, exceptions
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, Chat, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, ForceReply
 
 from omsu_bot import utils
 
+logger = logging.getLogger(__name__)
 
 class HandlerState(State):
 
@@ -80,24 +82,31 @@ class HandlerState(State):
 				except KeyError: pass
 
 				tg: Bot = bot.tg
-				msg = await tg.send_message(
-					chat_id=chat_id, 
-					reply_to_message_id=reply_to_message_id, 
-					parse_mode=self.parse_mode, 
-					**data
-				)
-				
-				if register_context:
-					await utils.register_context(context, msg, safe=register_context_safe)
-				return msg
+				try:
+					msg = await tg.send_message(
+						chat_id=chat_id, 
+						reply_to_message_id=reply_to_message_id, 
+						parse_mode=self.parse_mode, 
+						**data
+					)
+
+					if register_context:
+						await utils.register_context(context, msg, safe=register_context_safe)
+					return msg
+				except exceptions.TelegramForbiddenError:
+					logger.error(f"Forbidden seding message to the user ({chat_id})")	
 
 		else:
 			await context.set_state(self)
 			if self.text:
-				msg = await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
-				if self.register_context:
-					await utils.register_context(context, msg, safe=self.register_context_safe)
-				return msg
+				tg: Bot = bot.tg
+				try:
+					msg = await bot.tg.send_message(chat_id=chat_id, reply_to_message_id=reply_to_message_id, text=self.text, reply_markup=self.reply_markup, parse_mode=self.parse_mode)
+					if self.register_context:
+						await utils.register_context(context, msg, safe=self.register_context_safe)
+					return msg
+				except exceptions.TelegramForbiddenError:
+					logger.error(f"Forbidden seding message to the user ({chat_id})")	
 
 
 
