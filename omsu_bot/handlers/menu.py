@@ -19,7 +19,7 @@ from omsu_bot.handlers.admin import AdminForm
 from omsu_bot.handlers.schedule import ScheduleForm
 from omsu_bot.handlers.settings import SettingsForm
 from omsu_bot.database.models import Group, User, Student, Teacher
-
+from omsu_bot.filters import MainFilter
 
 
 
@@ -48,6 +48,22 @@ class MenuForm(StatesGroup):
 	
 	menu_main = HandlerState(message_handler=menu_main_message)
 
+	async def menu_main_group_message(self, bot, context: FSMContext):
+		tg_id = context.key.user_id
+		cfg = bot.config
+
+		reply_menu = (
+			ReplyKeyboardBuilder()
+				.button(text="Расписание", callback_data="main_menu_schedule")
+		)
+
+		return dict(
+			text=lang.user_menu_description,
+			reply_markup=reply_menu.as_markup(resize_keyboard=True)
+		)
+	
+	menu_main_group = HandlerState(message_handler=menu_main_group_message)
+
 
 class Menu(RouterHandler):
 	def __init__(self) -> None:
@@ -55,25 +71,26 @@ class Menu(RouterHandler):
 
 		router: Router = self.router
 
-		@router.message(F.text.lower() == "расписание")
+		@router.message(MainFilter(allow_groups=True), F.text.lower() == "расписание")
 		async def handle_schedule(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
+			
 
-		@router.message(F.text.lower() == "настройки")
+		@router.message(MainFilter(), F.text.lower() == "настройки")
 		async def handle_setting(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			await SettingsForm.settings.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
-		@router.message(F.text.lower().in_(("/help", "о боте")))
+		@router.message(MainFilter(), F.text.lower().in_(("/help", "о боте")))
 		async def handle_about(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			await AboutForm.about.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
-		@router.message(F.text.lower() == "админ-меню")
+		@router.message(MainFilter(), F.text.lower() == "админ-меню")
 		async def handle_admin(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 

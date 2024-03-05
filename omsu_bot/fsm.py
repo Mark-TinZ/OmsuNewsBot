@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class HandlerState(State):
 
-	def __init__(self, name: str = None, text: str = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply = None, parse_mode: str | None = "Markdown", register_context: bool = True, register_context_safe: bool = False, disable_notification: bool = True, message_handler = None, message_edit_handler = None, message_send_handler = None, previous_state = None):
+	def __init__(self, name: str | None = None, text: str | None = None, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None, parse_mode: str | None = "Markdown", register_context: bool = True, register_context_safe: bool = False, disable_notification: bool = True, message_handler = None, message_edit_handler = None, message_send_handler = None, previous_state = None):
 		super().__init__()
 
 		# handlers
@@ -34,7 +34,7 @@ class HandlerState(State):
 
 	# await request_number.message_edit(self.bot, state, msg)
 	# await request_number.message_edit(self.bot, state, message_id, chat)
-	async def message_edit(self, bot, context: FSMContext, message: Message | int, chat: Chat | int = None, *args, **kwargs):
+	async def message_edit(self, bot, context: FSMContext, message: Message | int, chat: Chat | int | None = None, *args, **kwargs):
 
 		is_raw = isinstance(message, int)
 		chat_id = None
@@ -63,7 +63,7 @@ class HandlerState(State):
 
 
 
-	async def message_send(self, bot, context: FSMContext, chat: Chat | int, reply_to_message_id: int = None, *args, **kwargs):
+	async def message_send(self, bot, context: FSMContext, chat: Chat | int, reply_to_message_id: int | None = None, *args, **kwargs):
 
 		chat_id = chat if isinstance(chat, int) else chat.id
 
@@ -94,7 +94,7 @@ class HandlerState(State):
 						await utils.register_context(context, msg, safe=register_context_safe)
 					return msg
 				except exceptions.TelegramForbiddenError:
-					logger.error(f"Forbidden seding message to the user ({chat_id})")	
+					logger.error(f"Forbidden sending message to the user ({chat_id})")	
 
 		else:
 			await context.set_state(self)
@@ -106,7 +106,7 @@ class HandlerState(State):
 						await utils.register_context(context, msg, safe=self.register_context_safe)
 					return msg
 				except exceptions.TelegramForbiddenError:
-					logger.error(f"Forbidden seding message to the user ({chat_id})")	
+					logger.error(f"Forbidden sending message to the user ({chat_id})")	
 
 
 
