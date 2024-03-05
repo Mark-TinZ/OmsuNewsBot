@@ -115,7 +115,7 @@ class About(RouterHandler):
 					send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
 					mailing = Broadcast(self.bot.tg, ids)
 					await mailing.send_message(text=send_message, parse_mode="HTML")
-					await msg.reply("Ваш ответ успешно был отправлен пользователю!")
+					await msg.reply("Ответ отправлен!")
 		
 
 

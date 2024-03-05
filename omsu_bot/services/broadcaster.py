@@ -33,7 +33,7 @@ class Broadcast():
 					**kwargs
 				)
 			except exceptions.TelegramRetryAfter as e:
-				logger.warning(f"Exceptions Retransmission of a telegram after {e.retry_after}")
+				logger.info(f"Telegram: retry after {e.retry_after} sec")
 				await asyncio.sleep(e.retry_after)
 				await self.bot.send_message(
 					*args,
@@ -41,8 +41,8 @@ class Broadcast():
 					disable_notification=self.disable_notification,
 					**kwargs
 				)
-			except exceptions.TelegramForbiddenError:
-				logger.error(f"Forbidden seding message to the user ({chat_id})")			
+			except Exception as e:
+				logger.warn(f"Error sending message to chat ({chat_id}) {type(e)}") 
 
 	async def send_photo(self, *args, **kwargs) -> None:
 		for chat_id in self.chat_ids:
@@ -54,7 +54,7 @@ class Broadcast():
 					**kwargs
 				)
 			except exceptions.TelegramRetryAfter as e:
-				logger.warning(f"Exceptions Retransmission of a telegram after {e.retry_after}")
+				logger.warning(f"Telegram: retry after {e.retry_after} sec")
 				await asyncio.sleep(e.retry_after)
 				await self.bot.send_photo(
 					*args,

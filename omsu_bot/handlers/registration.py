@@ -122,9 +122,14 @@ class Registration(RouterHandler):
 					user: User = sess.execute(sa.select(User).where(User.tg_id == sender.id)).scalar_one_or_none()
 
 			if user:
-				await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id)
+				if msg.chat.type == "private":
+					return await MenuForm.menu_main.message_send(self.bot, state, msg.chat, msg.message_id)
+				await MenuForm.menu_main_group.message_send(self.bot, state, msg.chat, msg.message_id)
 			else:
-				await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
+				if msg.chat.type == "private":
+					return await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
+				msg.reply(lang.user_error_auth_unknown_group)
+				
 		
 		@router.callback_query(RegistrationForm.greetings_approval)
 		async def handle_greetings_approval(call: CallbackQuery, state: FSMContext):
