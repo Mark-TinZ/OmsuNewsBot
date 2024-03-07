@@ -41,7 +41,7 @@ lesson_time = {
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 	is_teacher = isinstance(target, Teacher)
 	is_weekday = isinstance(at, int)
-	text = f"{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
+	text = f"🌸{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}🌸\n\n"
 	
 	last_num = 0
 
