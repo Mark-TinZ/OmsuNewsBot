@@ -1,62 +1,81 @@
-from dataclasses import dataclass
 import time
+import environs
+
+from environs import Env
+from yaml import load, CLoader
+from dataclasses import dataclass
 from typing import Optional, Union
 from datetime import date, datetime
-from environs import Env
-import environs
 
 
 @dataclass
-class DbConfig:
+class LogConf:
+    level: str
+    folder: str
+    format: str
+
+    @staticmethod
+    def from_yaml(yaml: dict) -> "LogConf":
+        level   = yaml["level"]
+        folder  = yaml["folder"]
+        format  = yaml["format"]
+        
+        # An instance of LogConf is created using the retrieved values and returned.
+        return LogConf(level=level, folder=folder, format=format)
+
+
+@dataclass
+class DbConf:
     host: str
     password: str
     user: str
     database: str
     driver: str
     port: int = 5432
+    echo: bool = False
 
     @staticmethod
-    def from_env(env: Env) -> "DbConfig":
-        host = env.str("DB_HOST")
-        password = env.str("DB_PASSWORD")
-        user = env.str("DB_USERNAME")
-        database = env.str("DB_DATABASE")
-        driver = env.str("DB_DRIVER")
-        port = env.int("DB_PORT")
-        return DbConfig(
-            host=host, password=password, user=user, database=database, port=port, driver=driver
+    def from_yaml(yaml: dict) -> "DbConf":
+        host        = yaml["connect"]["host"]
+        host        = yaml["connect"]["host"]
+        password    = yaml["connect"]["password"]
+        user        = yaml["connect"]["user"]
+        database    = yaml["connect"]["database"]
+        driver      = yaml["connect"]["driver"]
+        port        = yaml["connect"]["port"]
+        echo        = yaml["echo"]
+
+        # An instance of DbConf is created using the retrieved values and returned.
+        return DbConf(
+            host=host, password=password, user=user, database=database, port=port, driver=driver, echo=echo
         )
 
 
 @dataclass
-class BotConfig:
+class BotConf:
     token: str
     admin_ids: list[Union[int, str]]
     timezone: str
+    academic_start: str
 
     @staticmethod
-    def from_env(env: Env) -> "BotConfig":
-        token = env.str("BOT_TOKEN")
-        admin_ids = list(map(int, env.list("ADMINS")))
-        timezone = env.str("TIMEZONE")
-        return BotConfig(token=token, admin_ids=admin_ids, timezone=timezone) # type: ignore
+    def from_yaml(yaml: dict) -> "BotConf":
+        token       = yaml["token"]
+        admin_ids   = yaml["admin_ids"]
+        timezone    = yaml["timezone"]
+        academic_start = datetime.strptime(yaml["academic_start"], "%d.%m.%Y").date()
 
-
-@dataclass
-class ScheduleConfig():
-    academic_start: date
-    @staticmethod
-    def from_env(env: Env) -> "ScheduleConfig":
-        academic_start = datetime.strptime(env.str("SCH_ACADEMIC_START"), "%d.%m.%Y").date()
-        print(academic_start)
-        return ScheduleConfig(academic_start=academic_start)
+        # An instance of BotConf is created using the retrieved values and returned.
+        return BotConf(
+            token=token, admin_ids=admin_ids, timezone=timezone, academic_start=academic_start
+        )
 
 
 @dataclass
 class Config:
-    bot: BotConfig
-    schedule: ScheduleConfig
-    db: Optional[DbConfig] = None
+    bot: BotConf
+    db: DbConf
+    logger: LogConf
 
 
 def load_config(path: str) -> Config:
@@ -65,7 +84,7 @@ def load_config(path: str) -> Config:
     env.read_env(path, override=True)
 
     return Config(
-        bot=BotConfig.from_env(env),
-        db=DbConfig.from_env(env),
-        schedule=ScheduleConfig.from_env(env)
+        bot     = BotConf(),
+        db      = DbConf(),
+        logger  = LogConf()
     )

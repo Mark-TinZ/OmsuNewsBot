@@ -33,14 +33,15 @@ class TaskScheduler(BaseMiddleware):
 class OMSUBot:
 	tg: Bot
 	
-	def __init__(self, cfg: Config) -> None:
-		self.config = cfg
+	def __init__(self, config, secret) -> None:
+		self.config = config
+		self.secret = secret
 		
-		scheduler = AsyncIOScheduler(timezone=self.config.bot.timezone)
+		scheduler = AsyncIOScheduler(timezone=config["maintenance"]["timezone"])
 		self.scheduler = scheduler
 
-		self.fsm_storage = get_fsm_storage(cfg)
-		tg = Bot(token=cfg.bot.token, parse_mode="HTML")
+		self.fsm_storage = get_fsm_storage()
+		tg = Bot(token=secret["token"], parse_mode="HTML")
 		dp = Dispatcher(storage=self.fsm_storage)
 		dp.update.middleware(
 			TaskScheduler(scheduler=scheduler)
@@ -48,8 +49,12 @@ class OMSUBot:
 
 		self.tg = tg
 		self.dispatcher = dp
-		self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
-						   cfg.db.database)
+		s_database = secret["database"]
+		s_connect = s_database["connect"]
+
+		self.db = Database(s_connect["driver"], s_connect["user"])
+		# self.db = Database(cfg.db.driver, cfg.db.user, cfg.db.password, cfg.db.host, cfg.db.port,
+		# 				   cfg.db.database)
 		
 		
 		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=0, args=(self.tg, self.db, self.config))
@@ -58,7 +63,7 @@ class OMSUBot:
 
 		self.handlers = handler_list
 
-	async def launch(self) -> None:
+	async def start(self) -> None:
 		try:
 			await self.db.launch()
 			
@@ -84,5 +89,5 @@ class OMSUBot:
 		logging.shutdown()
 
 
-def get_fsm_storage(cfg: Config) -> MemoryStorage:
+def get_fsm_storage() -> MemoryStorage:
 	return MemoryStorage()
