@@ -4,39 +4,49 @@ import logging
 
 import betterlogging as bl
 from datetime import datetime
+from yaml import load, CLoader
+from logging.handlers import TimedRotatingFileHandler
 
 from omsu_bot import OMSUBot
 from omsu_bot.config import load_config
 
-def setup_logging() -> None:
-	log_level = logging.INFO
-	bl.basic_colorized_config(level=log_level)
+# Set up logger
+def setup_logging(config) -> None:
+	c_logging = config["logging"]
+	
+	level = logging.getLevelName(c_logging.get("level", "DEBUG"))
+	bl.basic_colorized_config(level=level)
 
-	logs_folder = 'logs'
-	os.makedirs(logs_folder, exist_ok=True)
-	log_format = "%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s"
-	file_handler = logging.FileHandler(f"{logs_folder}/log-{datetime.now().strftime('%Y-%m-%d')}.log")
-	file_handler.setFormatter(logging.Formatter(log_format))
+	folder = c_logging["folder"]
+	os.makedirs(folder, exist_ok=True)
+	formatter = logging.Formatter(c_logging["format"])
+	
+	handler = TimedRotatingFileHandler(f"{folder}/log-{datetime.now().strftime('%Y-%m-%d')}.log", when="D", backupCount=30)
+	handler.setFormatter(formatter)
 
-	root_logger = logging.getLogger()
-	root_logger.setLevel(log_level)
-	root_logger.addHandler(file_handler)
-
+	root = logging.getLogger()
+	root.setLevel(level)
+	root.addHandler(handler)
+	
 	logging.basicConfig(
-		level=log_level,
-		format=log_format
+		level=level,
+		format=formatter
 	)
-	logger = logging.getLogger(__name__)
-	logger.info("Starting bot")
+
+	root.info("Logging setup: Done")
 
 
 async def main() -> None:
-	setup_logging()
+	with open("config.yaml", encoding="utf-8") as file:
+		config: dict = load(file, Loader=CLoader)
+	
+	setup_logging(config)
 
-	config = load_config(".env")
+	with open("secret.yaml", encoding="utf-8") as file:
+		secret: sict = load(file, Loader=CLoader)
 
-	bot = OMSUBot(config)
-	await bot.launch()
+	bot = OMSUBot(config, secret)
+	await bot.start()
 
 
 if __name__ == '__main__':

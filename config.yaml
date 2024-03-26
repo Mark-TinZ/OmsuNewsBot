@@ -1,0 +1,13 @@
+maintenance:
+  timezone: "Asia/Omsk"
+  academic_start: "08.01.2024"
+  owner_ids:
+    - 1012532671  
+
+database:
+  echo: false
+
+logging:
+  level: "INFO"
+  folder: "logs"
+  format: "%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s"
