@@ -9,7 +9,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from omsu_bot import utils
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.services.broadcaster import Broadcast
@@ -83,8 +83,8 @@ class About(RouterHandler):
 
 			if not text or len(text) > 4000:
 				return await msg.reply(lang.user_about_idea_error_len)
-			
-			mailing = Broadcast(self.bot.tg, self.bot.config.bot.admin_ids)
+
+			mailing = Broadcast(self.bot.tg, self.bot.config.main.admin_ids)
 			await mailing.send_message(
 				text=(
 					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
@@ -107,7 +107,7 @@ class About(RouterHandler):
 
 		@router.message(Command(commands="answer"))
 		async def answer_ticket(msg: Message, command: CommandObject) -> None:
-			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
+			if msg.from_user.id not in self.bot.config.main.admin_ids: return
 			args = command.args
 			if args:
 				ids, text = parse_answer_data(args)
@@ -121,7 +121,7 @@ class About(RouterHandler):
 
 		@router.message(F.reply_to_message & F.reply_to_message.text & F.reply_to_message.text.regexp(r"^Тикет: #id(\d+)\n").as_("ticket_author_id"))
 		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match) -> None:
-			if msg.from_user.id not in self.bot.config.bot.admin_ids: return
+			if msg.from_user.id not in self.bot.config.main.admin_ids: return
 
 			ticket_author_id = ticket_author_id.group(1)
 			if not (ticket_author_id and ticket_author_id.isdigit()): return

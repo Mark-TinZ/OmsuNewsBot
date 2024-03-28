@@ -11,8 +11,9 @@ from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from omsu_bot import utils
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.fsm import HandlerState
+from omsu_bot.config import Config
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.services import calendar_builder, broadcaster
 from omsu_bot.database.models import Group, Subject, User, Student, Teacher, Lesson
@@ -41,7 +42,7 @@ lesson_time = {
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 	is_teacher = isinstance(target, Teacher)
 	is_weekday = isinstance(at, int)
-	text = f"🌸{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}🌸\n\n"
+	text = f"{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
 	
 	last_num = 0
 
@@ -83,6 +84,7 @@ class ScheduleForm(StatesGroup):
 	@staticmethod
 	async def schedule_message(self, bot, context: FSMContext, at=None, show_calendar: bool = False):
 		tg_id = context.key.user_id
+		print(bot.db.is_online())
 		if not bot.db.is_online():
 			await context.clear()
 			return dict(
@@ -105,7 +107,7 @@ class ScheduleForm(StatesGroup):
 			at = at or datetime.today().date()
 
 			weekday = at.weekday()
-			academic_start = bot.config.schedule.academic_start
+			academic_start = bot.config.main.academic_start
 			week_number = weeks_difference(academic_start, at)
 
 			target = None
@@ -157,7 +159,7 @@ class ScheduleForm(StatesGroup):
 			builder.button(text="На завтра", callback_data="show_tomorrow")
 			builder.button(text="Календарь", callback_data="show_calendar")
 
-			if tg_id in bot.config.bot.admin_ids:
+			if tg_id in bot.config.main.admin_ids:
 				builder.button(text="Изменить", callback_data="edit_schedule")
 			builder.adjust(2, 1)
 		
@@ -224,7 +226,7 @@ class Schedule(RouterHandler):
 					await call.answer(text="В разработке...")
 		
 	@staticmethod
-	async def schedule_scheduler(bot: Bot, db, config):
+	async def schedule_scheduler(bot: Bot, db, config: Config):
 		sess: sorm.Session = db.session
 
 		at = datetime.today().date()+timedelta(days=1)
@@ -234,7 +236,7 @@ class Schedule(RouterHandler):
 		if weekday == 6:
 			return
 
-		academic_start = config.schedule.academic_start
+		academic_start = config.main.academic_start
 		week_number = weeks_difference(academic_start, at)
 
 		target = None

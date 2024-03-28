@@ -117,3 +117,5 @@ month_map = {
 
 weekday_map = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
+academic_weeks = "Сейчас идет {academic_week}-я учебная неделя"
+

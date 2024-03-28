@@ -12,7 +12,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 from omsu_bot import utils
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler, admin
 from omsu_bot.handlers import groups
