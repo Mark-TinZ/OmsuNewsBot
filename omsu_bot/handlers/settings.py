@@ -12,7 +12,7 @@ from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
 from omsu_bot.fsm import HandlerState
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Student, Group, Teacher, User
 

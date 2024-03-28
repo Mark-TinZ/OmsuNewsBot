@@ -4,22 +4,20 @@ import logging
 
 import betterlogging as bl
 from datetime import datetime
-from yaml import load, CLoader
 from logging.handlers import TimedRotatingFileHandler
 
 from omsu_bot import OMSUBot
-from omsu_bot.config import load_config
+from omsu_bot.config import Config, load_config
 
 # Set up logger
-def setup_logging(config) -> None:
-	c_logging = config["logging"]
-	
-	level = logging.getLevelName(c_logging.get("level", "DEBUG"))
+def setup_logging(config: Config) -> None:
+	logger = config.logger
+	level = logging.getLevelName(logger.level)
 	bl.basic_colorized_config(level=level)
 
-	folder = c_logging["folder"]
+	folder = logger.folder
 	os.makedirs(folder, exist_ok=True)
-	formatter = logging.Formatter(c_logging["format"])
+	formatter = logging.Formatter(logger.format)
 	
 	handler = TimedRotatingFileHandler(f"{folder}/log-{datetime.now().strftime('%Y-%m-%d')}.log", when="D", backupCount=30)
 	handler.setFormatter(formatter)
@@ -37,15 +35,11 @@ def setup_logging(config) -> None:
 
 
 async def main() -> None:
-	with open("config.yaml", encoding="utf-8") as file:
-		config: dict = load(file, Loader=CLoader)
-	
+	config = load_config("config.yml")
+
 	setup_logging(config)
 
-	with open("secret.yaml", encoding="utf-8") as file:
-		secret: sict = load(file, Loader=CLoader)
-
-	bot = OMSUBot(config, secret)
+	bot = OMSUBot(config)
 	await bot.start()
 
 

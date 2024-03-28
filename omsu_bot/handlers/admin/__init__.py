@@ -10,7 +10,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import groups
 from omsu_bot.handlers import RouterHandler
@@ -57,7 +57,7 @@ class AdminForm(StatesGroup):
 			student_count: int = sess.execute(sa.Select(sa.func.count(Student.id_)).where(Student.group_id == group_id)).scalar()
 
 
-		if tg_id in bot.config.bot.admin_ids:
+		if tg_id in bot.config.main.admin_ids:
 			pass
 		
 		return dict(
@@ -89,7 +89,7 @@ class Admin(RouterHandler):
 			if await utils.throttling_assert(state, count=5): return
 			tg_id = call.from_user.id
 			
-			if tg_id not in self.bot.config.bot.admin_ids: return
+			if tg_id not in self.bot.config.main.admin_ids: return
 
 			match call.data:
 				case "admin_groups":

@@ -1,6 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from datetime import datetime, timedelta, date
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 import calendar
 
 

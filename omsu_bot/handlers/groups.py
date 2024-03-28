@@ -10,11 +10,12 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
-import omsu_bot.data.language as lang
+import omsu_bot.data.lang as lang
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Group, User, Student, Teacher
 
+logger = logging.getLogger(__name__)
 
 
 class GroupsForm(StatesGroup):
