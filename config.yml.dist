@@ -1,0 +1,23 @@
+bot:
+  token: 
+
+maintenance:
+  parse_mode: HTML
+  timezone: 
+  academic_start: 
+  admin_ids: 
+
+database:
+  echo: false
+  connect:
+    host: 
+    port: 
+    user: 
+    database: 
+    driver: 
+    password:
+
+logging:
+  level: "INFO"
+  folder: "logs"
+  format: "%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s"

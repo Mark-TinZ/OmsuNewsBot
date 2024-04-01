@@ -46,13 +46,11 @@ class OMSUBot:
 
 		self.tg = tg
 		self.dispatcher = dp
-		db = config.db
+		db_cfg = config.db
 
-		self.db = Database(
-			db.driver, db.user, db.password, db.host, db.port, db.database
-		)
-
+		self.db = Database(db_cfg)
 		scheduler.add_job(Schedule.schedule_scheduler, "cron", hour=18, minute=0, args=(self.tg, self.db, self.config))
+		# scheduler.add_job(Schedule.schedule_scheduler, "interval", seconds=10, args=(self.tg, self.db, self.config))
 
 		handler_list = [Registration(), Menu(), Schedule(), Admin(), Settings(), About(), Groups(), ScopeWork()]
 
