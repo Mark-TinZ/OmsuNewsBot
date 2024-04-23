@@ -8,12 +8,12 @@
 
 ## Setup bot
 
-1. Clone this repository
-2. Change the name of `.env.dist` to `.env` and set all environment variables as you need
-3. Postgresql configuration is required. For the work of the bot
-4. Enter data from Postgresql into `.env`
-5. Start the database
-6. ...
+1. Клонируйте этот репозиторий
+2. Измените имя файла `config.yml.dist` на `config.yml`
+3. В качестве драйвера используйте `postgresql+psycopg2`
+4. Введите данные `PostgreSQL` в файл `config.yml`
+5. Запустите базу данных  `PosgreSQL`
+6. Бот готов к запуску 
 
 ## Create venv
 
@@ -30,6 +30,9 @@ source .venv/bin/activate
 
 ```shell
 py -m venv .venv
+```
+```shell
+.venv\Scripts\activate
 ```
 
 ## Install lib:
