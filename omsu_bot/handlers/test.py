@@ -22,6 +22,10 @@ class TestForm(StatesGroup):
 				.as_markup()
 	)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 	@staticmethod
 	async def request_hello_message(self, bot, context: FSMContext, ):
 		await context.set_state(self)
@@ -38,6 +42,10 @@ class TestForm(StatesGroup):
 				.as_markup()
 	)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 	@staticmethod
 	async def request_number_message(self, bot, context: FSMContext):
 		await context.set_state(self)
@@ -56,6 +64,12 @@ class TestForm(StatesGroup):
 	request_number = HandlerState(message_handler=request_number_message)
 
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 class Test(RouterHandler):
 	def __init__(self):
 		super().__init__()
