@@ -16,10 +16,7 @@ from omsu_bot.services.broadcaster import Broadcast
 
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
 
-=======
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 def parse_answer_data(text: str):
 	pattern = r"#id(\d+)"
 	ids = re.findall(pattern, text)
@@ -27,10 +24,6 @@ def parse_answer_data(text: str):
 	return map(int, ids), remaining_text.strip()
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 class AboutForm(StatesGroup):
 	about = HandlerState(
 		text=lang.user_about,
@@ -58,10 +51,6 @@ class AboutForm(StatesGroup):
 			.as_markup(),
 		previous_state=about
 	)
-<<<<<<< HEAD
-=======
-	
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 
 
 class About(RouterHandler):
@@ -106,10 +95,6 @@ class About(RouterHandler):
 			await msg.reply(lang.user_about_idea_answer)
 			await state.clear() 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 		@router.callback_query(AboutForm.about_idea_ticket)
 		async def about_idea_ticket_call(call: CallbackQuery, state: FSMContext) -> None:
 			data = call.data 
@@ -129,11 +114,6 @@ class About(RouterHandler):
 					mailing = Broadcast(self.bot.tg, ids)
 					await mailing.send_message(text=send_message, parse_mode="HTML")
 					await msg.reply("Ответ отправлен!")
-<<<<<<< HEAD
-=======
-		
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 
 		@router.message(F.reply_to_message & F.reply_to_message.text & F.reply_to_message.text.regexp(r"^Тикет: #id(\d+)\n").as_("ticket_author_id"))
 		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match) -> None:

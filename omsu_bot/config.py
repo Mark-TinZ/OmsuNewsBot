@@ -15,12 +15,8 @@ class BotConf:
         return BotConf(
             token=token
         )
-<<<<<<< HEAD
 
 
-=======
-  
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 @dataclass
 class MainConf:
     parse_mode: str
@@ -35,18 +31,11 @@ class MainConf:
         parse_mode      = yaml["parse_mode"]
         academic_start  = datetime.strptime(yaml["academic_start"], "%d.%m.%Y").date()
 
-<<<<<<< HEAD
-=======
-        # An instance of BotConf is created using the retrieved values and returned.
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
         return MainConf(
             admin_ids=admin_ids, timezone=timezone, parse_mode=parse_mode, academic_start=academic_start
         )
 
-<<<<<<< HEAD
 
-=======
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 @dataclass
 class DbConf:
     host: str
@@ -68,18 +57,11 @@ class DbConf:
         port     = yaml["connect"]["port"]
         echo     = yaml["echo"]
 
-<<<<<<< HEAD
-=======
-        # An instance of DbConf is created using the retrieved values and returned.
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
         return DbConf(
             host=host, password=password, user=user, database=database, port=port, driver=driver, echo=echo
         )
 
-<<<<<<< HEAD
 
-=======
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 @dataclass
 class LogConf:
     level: str
@@ -91,16 +73,10 @@ class LogConf:
         level  = yaml["level"]
         folder = yaml["folder"]
         format = yaml["format"]
-        
-<<<<<<< HEAD
+
         return LogConf(level=level, folder=folder, format=format)
+    
 
-
-=======
-        # An instance of LogConf is created using the retrieved values and returned.
-        return LogConf(level=level, folder=folder, format=format)
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 @dataclass
 class Config:
     bot: BotConf

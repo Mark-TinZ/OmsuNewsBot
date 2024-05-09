@@ -18,15 +18,6 @@ from omsu_bot.handlers import RouterHandler
 from omsu_bot.services import calendar_builder, broadcaster
 from omsu_bot.database.models import Group, Subject, User, Student, Teacher, Lesson
 
-<<<<<<< HEAD
-=======
-
-def weeks_difference(start_date, end_date):
-	days_difference = (end_date - start_date).days
-	return (days_difference // 7) + 1
-
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 logger = logging.getLogger(__name__)
 lesson_time = {
 	1: "8:45-9:30 / 9:35-10:20",
@@ -39,14 +30,10 @@ lesson_time = {
 	8: "21:30-22:15 / 22:20-23:05"
 }
 
-<<<<<<< HEAD
+
 def weeks_difference(start_date, end_date):
 	days_difference = (end_date - start_date).days
 	return (days_difference // 7) + 1
-=======
-
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 	is_teacher = isinstance(target, Teacher)
@@ -89,10 +76,6 @@ def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 
 
 class ScheduleForm(StatesGroup):
-<<<<<<< HEAD
-=======
-	
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 	@staticmethod
 	async def schedule_message(self, bot, context: FSMContext, at=None, show_calendar: bool = False):
 		tg_id = context.key.user_id
@@ -104,10 +87,6 @@ class ScheduleForm(StatesGroup):
 			)
 		await context.set_state(self)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 		sess: sorm.Session = bot.db.session
 
 		with sess.begin():
@@ -164,10 +143,6 @@ class ScheduleForm(StatesGroup):
 			
 			text = rich_schedule(lessons, at, target)
 
-<<<<<<< HEAD
-=======
-		
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 		await context.update_data(selected_date=at)
 
 		builder = InlineKeyboardBuilder()
@@ -206,10 +181,6 @@ class Schedule(RouterHandler):
 			if call.data == "mlabel":
 				await msg.answer_video_note(FSInputFile("media/video/heli-maxwell.mp4"))
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 			data = await state.get_data()
 
 			current_date = data.get("selected_date", None) or datetime.today().date()
@@ -241,11 +212,6 @@ class Schedule(RouterHandler):
 					await call.message.edit_reply_markup(reply_markup=builder.as_markup())
 				case "edit_schedule":
 					await call.answer()
-<<<<<<< HEAD
-=======
-
-					
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 				case _:
 					await call.answer(text="В разработке...")
 		

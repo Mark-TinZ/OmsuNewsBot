@@ -10,10 +10,6 @@ class MainFilter():
 		return self.allow_groups or msg.chat.type == "private"
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b3cbe8f121d82c6ca395df027451653658db9799
 # class ChatTypeFilter(BaseFilter):
 #     def __init__(self, chat_type: Union[str, list]):
 #         self.chat_type = chat_type
