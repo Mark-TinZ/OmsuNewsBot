@@ -1,3 +1,46 @@
+import os
+import logging
+
+from yaml import load, CLoader
+from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class ExtLang(Exception):
+    def directory_notfount():
+        logger.critical("directory notfount")
+
+class Localization:
+    def __init__(self, base_dir: str = "lang", default_lang: str = "ru")  -> None:
+        self.base_dir = base_dir
+        self.default_lang = default_lang
+        self.translations = self._load_translations()
+
+    def _load_translations(self) -> dict:
+        translations = dict()
+        if not os.path.isdir(self.base_dir):
+            raise ExtLang.directory_notfount()
+        
+        for lang_file in os.listdir(self.base_dir):
+            if lang_file.endswith(".yaml") or lang_file.endswith(".yml"):
+                lang_code, _ = os.path.splitext(lang_file)
+                with open(os.path.join(self.base_dir, lang_file), "r", encoding="utf-8") as file:
+                    lang_data = load(file, Loader=CLoader)
+                    translations[lang_code] = lang_data
+        logger.info("Localization setup: Done")
+        return translations
+
+    def get_translation(self, lang_code) -> dict:
+        if lang_code is None:
+            lang_code = self.default_lang
+        return self.translations.get(lang_code, self.translations.get(self.default_lang))
+
+    def __getitem__(self, key):
+        return self.get_translation(key)
+
+
+
 user_greetings = (
     "👋 Приветствуем тебя в удобном <b>неофициальном</b> Telegram-боте для студентов и преподавателей!\n\n\n"
 

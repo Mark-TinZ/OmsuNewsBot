@@ -79,7 +79,7 @@ class GroupsForm(StatesGroup):
 		builder.row(InlineKeyboardButton(text="Назад", callback_data="return"))
 
 		return dict(
-			text=(title+"\n\n" if title else "") + f"📚 *Курс №{course_number}*\n\nВыберите *группу*:",
+			text=(title+"\n" if title else "") + f"📚 *Курс №{course_number}*\n\nВыберите *группу*:",
 			reply_markup=builder.as_markup()
 		)
 
@@ -92,7 +92,6 @@ class Groups(RouterHandler):
 		super().__init__()
 		
 		router: Router = self.router
-
 
 		@router.callback_query(GroupsForm.course_selection)
 		async def handle_course_selection(call: CallbackQuery, state: FSMContext):
@@ -115,7 +114,6 @@ class Groups(RouterHandler):
 				await state.update_data(groups_course_number=course_number)
 				await GroupsForm.group_selection.message_edit(self.bot, state, call.message)
 		
-		
 		@router.callback_query(GroupsForm.group_selection)
 		async def handle_group_selection(call: CallbackQuery, state: FSMContext):
 			if await utils.throttling_assert(state): return
@@ -133,8 +131,6 @@ class Groups(RouterHandler):
 				group_name: str = c[(spl+1):]
 			except:
 				return
-
-
 			
 			await state.update_data(groups_group_id=group_id, groups_group_name=group_name)
 

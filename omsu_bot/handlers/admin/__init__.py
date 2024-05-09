@@ -29,10 +29,6 @@ class AdminForm(StatesGroup):
 				.as_markup()
 	)
 
-
-	
-
-
 	@staticmethod
 	async def group_settings_message(self, bot, context: FSMContext):
 		if not bot.db.is_online(): return dict(text=lang.user_error_database_connection)
@@ -69,12 +65,9 @@ class AdminForm(StatesGroup):
 		message_handler=group_settings_message
 	)
 
-
 	@staticmethod
 	async def schedule_message(self, bot, context: FSMContext) -> None:
 		pass
-
-
 
 
 class Admin(RouterHandler):
@@ -82,7 +75,6 @@ class Admin(RouterHandler):
 		super().__init__()
 		
 		router: Router = self.router
-
 
 		@router.callback_query(AdminForm.admin)
 		async def handle_admin(call: CallbackQuery, state: FSMContext) -> None:

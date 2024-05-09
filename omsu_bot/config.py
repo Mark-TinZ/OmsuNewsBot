@@ -15,7 +15,8 @@ class BotConf:
         return BotConf(
             token=token
         )
-  
+
+
 @dataclass
 class MainConf:
     parse_mode: str
@@ -30,10 +31,10 @@ class MainConf:
         parse_mode      = yaml["parse_mode"]
         academic_start  = datetime.strptime(yaml["academic_start"], "%d.%m.%Y").date()
 
-        # An instance of BotConf is created using the retrieved values and returned.
         return MainConf(
             admin_ids=admin_ids, timezone=timezone, parse_mode=parse_mode, academic_start=academic_start
         )
+
 
 @dataclass
 class DbConf:
@@ -56,10 +57,10 @@ class DbConf:
         port     = yaml["connect"]["port"]
         echo     = yaml["echo"]
 
-        # An instance of DbConf is created using the retrieved values and returned.
         return DbConf(
             host=host, password=password, user=user, database=database, port=port, driver=driver, echo=echo
         )
+
 
 @dataclass
 class LogConf:
@@ -73,8 +74,8 @@ class LogConf:
         folder = yaml["folder"]
         format = yaml["format"]
         
-        # An instance of LogConf is created using the retrieved values and returned.
         return LogConf(level=level, folder=folder, format=format)
+
 
 @dataclass
 class Config:

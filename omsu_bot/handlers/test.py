@@ -22,7 +22,6 @@ class TestForm(StatesGroup):
 				.as_markup()
 	)
 
-
 	@staticmethod
 	async def request_hello_message(self, bot, context: FSMContext, ):
 		await context.set_state(self)
@@ -38,7 +37,6 @@ class TestForm(StatesGroup):
 				.button(text="Отмена", callback_data="cancel")
 				.as_markup()
 	)
-
 
 	@staticmethod
 	async def request_number_message(self, bot, context: FSMContext):
@@ -56,9 +54,6 @@ class TestForm(StatesGroup):
 		)
 
 	request_number = HandlerState(message_handler=request_number_message)
-
-
-
 
 
 class Test(RouterHandler):

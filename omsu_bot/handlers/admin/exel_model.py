@@ -13,7 +13,6 @@ from aiogram.filters import Command, CommandObject
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -22,7 +22,6 @@ class Broadcast():
 		self.disable_notification: bool = disable_notification
 		self.flood_sleep: bool = flood_sleep
 
-
 	async def send_message(self, *args, **kwargs) -> None:
 		for chat_id in self.chat_ids:
 			try:

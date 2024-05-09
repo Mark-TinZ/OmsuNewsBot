@@ -1,21 +1,16 @@
 # OmsuNewsBot
-
-[Навигация]
-
 ## About
 
-[Описание]
+Бот для отправки учебного расписания в Telegram, учитывающий академические недели. Он составляет расписание как для студентов, так и для преподавателей. В качестве базы данных используется PostgreSQL, но можно использовать и другие бд.
 
-## Setup bot
+## Установка бота
 
-1. Clone this repository
-2. Change the name of `.env.dist` to `.env` and set all environment variables as you need
-3. Postgresql configuration is required. For the work of the bot
-4. Enter data from Postgresql into `.env`
-5. Start the database
-6. ...
+1. Клонируйте репозиторий.
+2. В `config.yml` заполните все пропуски.
+3. Следуйте дальнейшим инструкциям подготовки виртуального окружения.
+4. Бот готов к запуску.
 
-## Create venv
+## Создать venv
 
 ### Unix/macOS
 
@@ -32,7 +27,7 @@ source .venv/bin/activate
 py -m venv .venv
 ```
 
-## Install lib:
+## Установка библиотек:
 
 ### Unix/macOS
 

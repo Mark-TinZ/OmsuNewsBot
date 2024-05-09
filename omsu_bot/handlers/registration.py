@@ -20,15 +20,16 @@ from omsu_bot.handlers.menu import MenuForm
 from omsu_bot.database.models import Student, Teacher, User, Group
 
 logger = logging.getLogger(__name__)
+localization = lang.Localization()
 
 
 class RegistrationForm(StatesGroup):
 	greetings_approval = HandlerState(
-		text=lang.user_greetings,
-		parse_mode="HTML",
+		text=localization["ru"]["auth"]["greetings"],
+		# parse_mode="HTML",
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="Продолжить", callback_data="approve")
+				.button(text=localization["ru"]["auth"]["next"], callback_data="approve")
 				.as_markup()
 	)
 	
@@ -36,31 +37,26 @@ class RegistrationForm(StatesGroup):
 		text=lang.user_registration_warning,
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="Принять", callback_data="approve")
+				.button(text=localization["ru"]["auth"]["approve"], callback_data="approve")
 				.as_markup()
 	)
 
 	role_selection = HandlerState(
-		text=(
-			"📝 Для начала вам нужно зарегистрироваться...\n\n"
-			"Выберите *роль*:"
-		),
+		text=localization["ru"]["auth"]["authorization"],
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="👨‍🎓 Студент", callback_data="student")
-				.button(text="👨‍🏫 Преподаватель", callback_data="teacher")
+				.button(text=localization["ru"]["auth"]["student"]["name"], callback_data="student")
+				.button(text=localization["ru"]["auth"]["teacher"]["name"], callback_data="teacher")
 				.adjust(2)
 				.as_markup()
 	)
 
 	### TEACHER REGISTRATION ###
 	teacher_auth = HandlerState(
-		text=(
-			"👨‍🏫 *Преподаватель*\n\nОтправьте сообщением ваш *ключ авторизации*:"
-		),
+		text=localization["ru"]["auth"]["teacher"]["auth"],
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="Отмена", callback_data="return")
+				.button(text=localization["ru"]["auth"]["return"], callback_data="return")
 				.as_markup()
 	)
 
@@ -68,10 +64,10 @@ class RegistrationForm(StatesGroup):
 		await state.set_state(self)
 		data = await state.get_data()
 		return dict(
-			text=f"👨‍🏫 *Преподаватель*\n*{data['teacher_name']}*\n\nПодтвердите, что *это вы*",
+			text=localization["ru"]["auth"]["teacher"]["aproval"].format(teacher_name=data["teacher_name"]),
 			reply_markup=InlineKeyboardBuilder()
-				.button(text="Изменить ключ", callback_data="change")
-				.button(text="Подтвердить", callback_data="confirm")
+				.button(text=localization["ru"]["auth"]["teacher"]["change"], callback_data="change")
+				.button(text=localization["ru"]["auth"]["teacher"]["confirm"], callback_data="confirm")
 				.as_markup()
 		)
 
@@ -86,11 +82,12 @@ class RegistrationForm(StatesGroup):
 		group_name = data["groups_group_name"]
 
 		return dict(
-			text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВсё верно?",
+			text=localization["ru"]["auth"]["student"]["aproval"]
+				.format(course_number=course_number, group_name=group_name),
 			reply_markup=
 				InlineKeyboardBuilder()
-				.button(text="Изменить", callback_data="change")
-				.button(text="Подтвердить", callback_data="confirm")
+				.button(text=localization["ru"]["auth"]["student"]["change"], callback_data="change")
+				.button(text=localization["ru"]["auth"]["student"]["confirm"], callback_data="confirm")
 				.adjust(2)
 				.as_markup()
 		)
@@ -151,7 +148,7 @@ class Registration(RouterHandler):
 
 			match call.data:
 				case "student":
-					await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title="*👨‍🎓 Студент*", prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
+					await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=localization["ru"]["auth"]["student"]["name"], prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
 				case "teacher":
 					await RegistrationForm.teacher_auth.message_edit(self.bot, state, call.message)
 		
@@ -191,10 +188,10 @@ class Registration(RouterHandler):
 				await state.update_data(teacher_name=name, teacher_authkey=msg.text)
 				await RegistrationForm.teacher_approval.message_send(self.bot, state, chat=msg.chat, reply_to_message_id=msg.message_id)
 			else:
-				logger.error(f"id={msg.from_user.id}, *Преподаватель* При регистрации возникла ошибка... *несуществующий ключ авторизации*")
+				logger.warning(f"id={msg.from_user.id}, invalid authorisation key")
 				await msg.answer_video_note(FSInputFile("media/video/cat-huh.mp4"))
 				ans = await msg.answer(
-					text="👨‍🏫 *Преподаватель*\n\n*При регистрации возникла ошибка...*\nВозможно вы ввели *несуществующий ключ авторизации*\nПроверьте и отправьте ключ ещё раз",
+					text=localization["ru"]["auth"]["ext"]["teacher"]["err"],
 					parse_mode="Markdown",
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
@@ -242,13 +239,13 @@ class Registration(RouterHandler):
 			if success:
 				await state.clear()
 				await call.message.edit_text(
-					text=f"👨‍🏫 *Преподаватель*\n*{name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
+					text=localization["ru"]["auth"]["teacher"]["success"].format(name=name),
 					parse_mode="Markdown"
 				)
 			else:
-				logger.error(f"id={call.message.from_user.id}, *Преподаватель* При регистрации возникла ошибка... *ключ уже недействителен*")
+				logger.warning(f"id={call.message.from_user.id}, key no longer valid")
 				await call.message.edit_text(
-					text="👨‍🏫 *Преподаватель*\n\n*При регистрации возникла ошибка...*\nВозможно этот *ключ уже недействителен*\nПроверьте и отправьте ключ ещё раз",
+					text=localization["ru"]["auth"]["ext"]["teacher"]["key_valid"],
 					parse_mode="Markdown",
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
@@ -263,7 +260,7 @@ class Registration(RouterHandler):
 			await call.answer()
 			c = call.data
 			if c == "change":
-				await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title="*👨‍🎓 Студент*", prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
+				await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=localization["ru"]["auth"]["student"]["name"], prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
 				return
 			
 			if c != "confirm":
@@ -302,12 +299,12 @@ class Registration(RouterHandler):
 
 			if success:
 				await call.message.edit_text(
-					text=f"👨‍🎓 *Студент*\n📚 *Курс №{course_number}*\n💼 *Группа: {group_name}*\n\nВы успешно зарегистрированы!\n\nИспользуйте /start для взаимодействия",
+					text=localization["ru"]["auth"]["student"]["success"].format(course_number=course_number, group_name=group_name),
 					parse_mode="Markdown"
 				)
 			else:
-				logger.error(f"id={call.message.from_user.id}, При регистрации возникла ошибка...")
-				await call.message.edit_text("При регистрации возникла ошибка...")
+				logger.error(f"id={call.message.from_user.id}, an error occurred while registering")
+				await call.message.edit_text(localization["ru"]["auth"]["ext"]["err"])
 				await call.message.answer_video_note(FSInputFile("media/video/error-bd.mp4"))
 		
 

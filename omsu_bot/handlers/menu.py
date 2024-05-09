@@ -83,7 +83,6 @@ class Menu(RouterHandler):
 			if await utils.throttling_assert(state): return
 
 			await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
-			
 
 		@router.message(MainFilter(), F.text.lower() == "настройки")
 		async def handle_setting(msg: types.Message, state: FSMContext) -> None:

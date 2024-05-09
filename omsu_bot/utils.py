@@ -4,7 +4,6 @@ from aiogram.fsm.context import FSMContext
 import time
 
 
-
 async def remove_context(state: FSMContext, tg: aiogram.Bot):
 	data = await state.get_data()
 
