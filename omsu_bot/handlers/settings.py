@@ -1,3 +1,4 @@
+from cmath import phase
 import json
 import logging
 import sqlalchemy as sa
@@ -12,7 +13,7 @@ from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
 from omsu_bot.fsm import HandlerState
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Student, Group, Teacher, User
 
@@ -26,11 +27,11 @@ class SettingsForm(StatesGroup):
 
 		if not bot.db.is_online():
 			logger.error("Database error occurred! Failed to connect to the database.")
-			return dict(text=lang.user_error_database_connection)
+			return dict(text=phrase("ru/ext/err_db"))
 
 		tg_id = context.key.user_id
 
-		text = "⚙ *Настройки*\n"
+		text = phrase("ru/settings/settings")
 
 		sess: sorm.Session = bot.db.session
 
@@ -39,7 +40,7 @@ class SettingsForm(StatesGroup):
 
 			if not user:
 				logger.error(f"id={context.key.user_id}, user is not registered!")
-				return dict(text=lang.user_error_auth_unknown)
+				return dict(text=phrase("ru/ext/err_unknown"))
 			
 			success = False
 			settings_dict: dict = dict()
@@ -61,8 +62,11 @@ class SettingsForm(StatesGroup):
 					logger.warning("Failed to find 'schedule_view'.")
 					settings_dict["schedule_view"] = False
 					success = True
-		
-			text += f"{'🔔' if settings_dict['notifications_enabled'] else '🔕'} Уведомление: {'Вкл.' if settings_dict['notifications_enabled'] else 'Выкл.'}\n"
+
+			text += phase("ru/settings/notifications_enabled").format(
+				icon="🔔" if settings_dict['notifications_enabled'] else "🔕",
+				switch="Вкл." if settings_dict['notifications_enabled'] else "Выкл."
+			)
 			text += f"Формат расписания: **В разработке**\n\n"
 			
 			if success:
@@ -78,7 +82,7 @@ class SettingsForm(StatesGroup):
 
 				if not (union and union[0] and union[1]):
 					logger.error(f"id={context.key.user_id}, Logical exception, database entry corrupted")
-					return dict(text=lang.user_error_database_logic)
+					return dict(text=phrase("ru/ext/err_db_logic"))
 
 				student, group = union
 
@@ -92,7 +96,7 @@ class SettingsForm(StatesGroup):
 
 				if not teacher:
 					logger.error(f"id={context.key.user_id}, Logical exception, database entry corrupted")
-					return dict(text=lang.user_error_database_logic)
+					return dict(text=phrase("ru/ext/err_db_logic"))
 
 				text += f"*👨‍🏫 Преподаватель\n😎 Имя:* {teacher.name}"
 		
@@ -128,7 +132,7 @@ class Settings(RouterHandler):
 
 			if not self.bot.db.is_online():
 				logger.error("Database error occurred! Failed to connect to the database.")
-				await call.message.edit_text(text=lang.user_error_auth_unknown)
+				await call.message.edit_text(text=phrase("ru/ext/err_unknown"))
 			
 			
 			sess: sorm.Session = self.bot.db.session
@@ -143,7 +147,7 @@ class Settings(RouterHandler):
 						
 						if not user:
 							logger.error(f"id={call.message.from_user.id}, user is not registered!")
-							await call.message.edit_text(text=lang.user_error_auth_unknown)
+							await call.message.edit_text(text=phrase("ru/ext/err_unknown"))
 							return
 						
 						if user.role_id == "student":
@@ -167,14 +171,14 @@ class Settings(RouterHandler):
 
 						if not user:
 							logger.error(f"id={call.message.from_user.id}, user is not registered!")
-							await call.message.edit_text(text=lang.user_error_auth_unknown)
+							await call.message.edit_text(text=phrase("ru/ext/err_unknown"))
 							return
 						
 						settings_json = user.settings
 						settings_dict = json.loads(settings_json)
 						if settings_dict.get("notifications_enabled", None) is None:
 							logger.error("Failed to find 'notifications_enabled'.")
-							await call.message.edit_text(text=lang.user_error_try_again)
+							await call.message.edit_text(text=phase("ru/ext/err_try_again"))
 							return
 						
 						settings_dict["notifications_enabled"] = not settings_dict["notifications_enabled"]

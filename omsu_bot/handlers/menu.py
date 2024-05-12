@@ -12,7 +12,7 @@ from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
 from omsu_bot.config import Config
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.handlers.about import AboutForm
@@ -32,17 +32,17 @@ class MenuForm(StatesGroup):
 
 		reply_menu = (
 			ReplyKeyboardBuilder()
-				.button(text="Расписание", callback_data="main_menu_schedule")
-				.button(text="Настройки", callback_data="main_menu_settings")
-				.button(text="О боте", callback_data="main_menu_about")
+				.button(text=phrase("ru/menu/schedule"))
+				.button(text=phrase("ru/menu/settings"))
+				.button(text=phrase("ru/menu/about"))
 				.adjust(1, 2)
 		)
 
 		if tg_id in cfg.main.admin_ids:
-			reply_menu.row(KeyboardButton(text="Админ-меню"))
+			reply_menu.row(KeyboardButton(text=phrase("ru/menu/admin")))
 
 		return dict(
-			text=lang.user_menu_description,
+			text=phrase("ru/menu/description"),
 			reply_markup=reply_menu.as_markup(resize_keyboard=True)
 		)
 
@@ -51,11 +51,11 @@ class MenuForm(StatesGroup):
 	async def menu_main_group_message(self, bot, context: FSMContext):
 		reply_menu = (
 			ReplyKeyboardBuilder()
-				.button(text="Расписание", callback_data="main_menu_schedule")
+				.button(text=phrase("ru/menu/schedule"), callback_data="main_menu_schedule")
 		)
 
 		return dict(
-			text=lang.user_menu_description,
+			text=phrase("ru/menu/desctioption"),
 			reply_markup=reply_menu.as_markup(resize_keyboard=True)
 		)
 	
@@ -67,7 +67,7 @@ class MenuForm(StatesGroup):
 		days_difference = (datetime.today().date() - cfg.main.academic_start).days 
 
 		return dict(
-			text=lang.academic_weeks.format(academic_week=(days_difference // 7) + 1)
+			text=phrase("ru/menu/academic_week").format(academic_week=(days_difference // 7) + 1)
 		)
 	
 	main_academic = HandlerState(message_handler=main_academic_message)
@@ -78,19 +78,19 @@ class Menu(RouterHandler):
 
 		router: Router = self.router
 
-		@router.message(MainFilter(allow_groups=True), F.text.lower() == "расписание")
+		@router.message(MainFilter(allow_groups=True), F.text.lower() == phrase("ru/menu/schedule").lower())
 		async def handle_schedule(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			await ScheduleForm.schedule.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
-		@router.message(MainFilter(), F.text.lower() == "настройки")
+		@router.message(MainFilter(), F.text.lower() == phrase("ru/menu/settings").lower())
 		async def handle_setting(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
 			await SettingsForm.settings.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
-		@router.message(MainFilter(), F.text.lower().in_(("/help", "о боте")))
+		@router.message(MainFilter(), F.text.lower().in_(("/help", phrase("ru/menu/about").lower())))
 		async def handle_about(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 
@@ -102,7 +102,7 @@ class Menu(RouterHandler):
 
 			await MenuForm.main_academic.message_send(self.bot, state, msg.chat, reply_to_message_id=msg.message_id)
 
-		@router.message(MainFilter(), F.text.lower() == "админ-меню")
+		@router.message(MainFilter(), F.text.lower() == phrase("ru/menu/admin").lower())
 		async def handle_admin(msg: types.Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 

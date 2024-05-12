@@ -1,8 +1,12 @@
-import asyncio
-import aiogram
-from aiogram.fsm.context import FSMContext
 import time
+import asyncio
+import logging
+import aiogram
 
+from typing import Any
+from aiogram.fsm.context import FSMContext
+
+logger = logging.getLogger()
 
 async def remove_context(state: FSMContext, tg: aiogram.Bot):
 	data = await state.get_data()
@@ -96,6 +100,22 @@ async def throttling_assert(state: FSMContext, freq: float = 2.0, count: int = 3
 	
 	return True
 
+def rget(d: dict, *keys, exc=False) -> Any | None:
+	try:
+		target = d
+		try:
+			for k in keys: target = target[k]
+			return target
+
+		except KeyError:
+			logger.warning(f"Could not find key {keys} in {d}")
+			return None
+	except Exception as e:
+		logger.warning("Could not get value from dict")
+		if exc: raise e
+
+def pget(d: dict, path: str, exc=False) -> Any | None:
+	return rget(d, *(path.split("/")), exc=False)
 
 
 

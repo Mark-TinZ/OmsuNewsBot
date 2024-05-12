@@ -9,7 +9,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from omsu_bot import utils
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.services.broadcaster import Broadcast
@@ -26,28 +26,28 @@ def parse_answer_data(text: str):
 
 class AboutForm(StatesGroup):
 	about = HandlerState(
-		text=lang.user_about,
+		text=phrase("ru/about/about"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="Предложить идею/Сообщить о проблеме", callback_data="idea_ticket")
+				.button(text=phrase("ru/about/ticket/idea"), callback_data="idea_ticket")
 				# .button(text="Сообщить о проблеме", callback_data="report_ticket")
 				.as_markup()
 	)
 	
 	about_idea_ticket = HandlerState(
-		text=lang.user_about_idea,
+		text=phrase("ru/about/warning"),
 		reply_markup=
 			InlineKeyboardBuilder()
-			.button(text="❌ Отмена", callback_data="cancel")
+			.button(text=phrase("ru/about/cancel"), callback_data="cancel")
 			.as_markup(),
 		previous_state=about
 	)
 
 	about_report_ticket = HandlerState(
-		text=lang.user_about_report,
+		text=phrase("ru/about/report_warning"),
 		reply_markup=
 			InlineKeyboardBuilder()
-			.button(text="❌ Отмена", callback_data="cancel")
+			.button(text=phrase("ru/about/cancel"), callback_data="cancel")
 			.as_markup(),
 		previous_state=about
 	)
@@ -69,7 +69,7 @@ class About(RouterHandler):
 				case "report_ticket":
 					pass
 				case _:
-					await call.answer(text="В разработке...")
+					await call.answer(text=phrase("ru/development"))
 		
 		@router.message(AboutForm.about_idea_ticket)
 		async def about_idea_ticket(msg: Message, state: FSMContext) -> Message | None:
@@ -81,18 +81,15 @@ class About(RouterHandler):
 
 
 			if not text or len(text) > 4000:
-				return await msg.reply(lang.user_about_idea_error_len)
+				return await msg.reply(phrase("ru/about/ext/err_len").format(len=len(text), max=4000))
 
 			mailing = Broadcast(self.bot.tg, self.bot.config.main.admin_ids)
 			await mailing.send_message(
-				text=(
-					f"Тикет: <code>#id{msg.from_user.id}</code>\n"
-					f"💡 {text}\n\n"
-					f"Пользователь: @{msg.from_user.username}"
-				),
+				text=phrase("ru/about/mailing")
+					.format(id=msg.from_user.id, text=text, username=msg.from_user.username),
 				parse_mode="HTML"
 			)
-			await msg.reply(lang.user_about_idea_answer)
+			await msg.reply(phrase("ru/about/idea_answer"))
 			await state.clear() 
 
 		@router.callback_query(AboutForm.about_idea_ticket)
@@ -101,7 +98,7 @@ class About(RouterHandler):
 			if data == "cancel":
 				await AboutForm.about.message_edit(self.bot, state, call.message, call.message.chat)
 			else:
-				await call.answer(text="В разработке...")
+				await call.answer(text=phrase("ru/development"))
 
 		@router.message(Command(commands="answer"))
 		async def answer_ticket(msg: Message, command: CommandObject) -> None:
@@ -110,10 +107,10 @@ class About(RouterHandler):
 			if args:
 				ids, text = parse_answer_data(args)
 				if ids and text:
-					send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
+					send_message=phrase("ru/about/answer").format(text=text)
 					mailing = Broadcast(self.bot.tg, ids)
 					await mailing.send_message(text=send_message, parse_mode="HTML")
-					await msg.reply("Ответ отправлен!")
+					await msg.reply(phrase("ru/about/response_send"))
 
 		@router.message(F.reply_to_message & F.reply_to_message.text & F.reply_to_message.text.regexp(r"^Тикет: #id(\d+)\n").as_("ticket_author_id"))
 		async def answer_ticket_message(msg: Message, ticket_author_id: re.Match) -> None:
@@ -126,7 +123,7 @@ class About(RouterHandler):
 			text = msg.text
 
 			if text:
-				send_message = f"💼 <b>Ответ от Администратора</b>\n\n{text}"
+				send_message=phrase("ru/about/answer").format(text=text)
 				mailing = Broadcast(self.bot.tg, [ticket_author_id])
 				await mailing.send_message(text=send_message, parse_mode="HTML")
-				await msg.reply("Ваш ответ успешно был отправлен пользователю!")
+				await msg.reply(phrase("ru/about/response_send"))

@@ -12,7 +12,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 from omsu_bot import utils
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler, admin
 from omsu_bot.handlers import groups
@@ -20,43 +20,42 @@ from omsu_bot.handlers.menu import MenuForm
 from omsu_bot.database.models import Student, Teacher, User, Group
 
 logger = logging.getLogger(__name__)
-localization = lang.Localization()
 
 
 class RegistrationForm(StatesGroup):
 	greetings_approval = HandlerState(
-		text=localization["ru"]["auth"]["greetings"],
+		text=phrase("ru/auth/greeting"),
 		# parse_mode="HTML",
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["next"], callback_data="approve")
+				.button(text=phrase("ru/auth/next"), callback_data="approve")
 				.as_markup()
 	)
 	
 	warning_approval = HandlerState(
-		text=lang.user_registration_warning,
+		text=phrase("ru/auth/warning"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["approve"], callback_data="approve")
+				.button(text=phrase("ru/auth/approve"), callback_data="approve")
 				.as_markup()
 	)
 
 	role_selection = HandlerState(
-		text=localization["ru"]["auth"]["authorization"],
+		text=phrase("ru/auth/authorization"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["student"]["name"], callback_data="student")
-				.button(text=localization["ru"]["auth"]["teacher"]["name"], callback_data="teacher")
+				.button(text=phrase("ru/auth/student/name"), callback_data="student")
+				.button(text=phrase("ru/auth/teacher/name"), callback_data="teacher")
 				.adjust(2)
 				.as_markup()
 	)
 
 	### TEACHER REGISTRATION ###
 	teacher_auth = HandlerState(
-		text=localization["ru"]["auth"]["teacher"]["auth"],
+		text=phrase("ru/auth/teacher/auth"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["return"], callback_data="return")
+				.button(text=phrase("ru/auth/return"), callback_data="return")
 				.as_markup()
 	)
 
@@ -64,10 +63,10 @@ class RegistrationForm(StatesGroup):
 		await state.set_state(self)
 		data = await state.get_data()
 		return dict(
-			text=localization["ru"]["auth"]["teacher"]["aproval"].format(teacher_name=data["teacher_name"]),
+			text=phrase("ru/auth/teacher/aproval").format(teacher_name=data["teacher_name"]),
 			reply_markup=InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["teacher"]["change"], callback_data="change")
-				.button(text=localization["ru"]["auth"]["teacher"]["confirm"], callback_data="confirm")
+				.button(text=phrase("ru/auth/teacher/change"), callback_data="change")
+				.button(text=phrase("ru/auth/teacher/confirm"), callback_data="confirm")
 				.as_markup()
 		)
 
@@ -82,12 +81,12 @@ class RegistrationForm(StatesGroup):
 		group_name = data["groups_group_name"]
 
 		return dict(
-			text=localization["ru"]["auth"]["student"]["aproval"]
+			text=phrase("ru/auth/student/aproval")
 				.format(course_number=course_number, group_name=group_name),
 			reply_markup=
 				InlineKeyboardBuilder()
-				.button(text=localization["ru"]["auth"]["student"]["change"], callback_data="change")
-				.button(text=localization["ru"]["auth"]["student"]["confirm"], callback_data="confirm")
+				.button(text=phrase("ru/auth/student/change"), callback_data="change")
+				.button(text=phrase("ru/auth/student/confirm"), callback_data="confirm")
 				.adjust(2)
 				.as_markup()
 		)
@@ -105,12 +104,13 @@ class Registration(RouterHandler):
 		async def handle_start(msg: Message, state: FSMContext) -> None:
 			if await utils.throttling_assert(state): return
 			
-			if not self.bot.db.is_online():
-				await state.clear()
-				await msg.answer(text=lang.user_error_database_connection)
-				return
-
 			sender = msg.from_user
+
+			if not self.bot.db.is_online():
+				logger.error(f"id={sender.id}, database is offline")
+				await state.clear()
+				await msg.answer(text=phrase("ru/ext/err_db"))
+				return
 
 			sess: sorm.Session = self.bot.db.session
 
@@ -125,7 +125,7 @@ class Registration(RouterHandler):
 			else:
 				if msg.chat.type == "private":
 					return await RegistrationForm.greetings_approval.message_send(self.bot, state, msg.chat, msg.message_id)
-				msg.reply(lang.user_error_auth_unknown_group)
+				msg.reply(phrase("ru/auth/ext/err_indnown"))
 				
 		
 		@router.callback_query(RegistrationForm.greetings_approval)
@@ -148,7 +148,7 @@ class Registration(RouterHandler):
 
 			match call.data:
 				case "student":
-					await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=localization["ru"]["auth"]["student"]["name"], prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
+					await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=phrase("ru/auth/student/name"), prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
 				case "teacher":
 					await RegistrationForm.teacher_auth.message_edit(self.bot, state, call.message)
 		
@@ -170,8 +170,8 @@ class Registration(RouterHandler):
 				return
 
 			if not self.bot.db.is_online():
-				logger.error(f"id={msg.from_user.id}, {lang.user_error_database_connection}")
-				await msg.answer(text=lang.user_error_database_connection)
+				logger.error(f"id={msg.from_user.id}, database is offline")
+				await msg.answer(text=phrase("ru/ext/err_db"))
 				return
 
 			success = False
@@ -191,7 +191,7 @@ class Registration(RouterHandler):
 				logger.warning(f"id={msg.from_user.id}, invalid authorisation key")
 				await msg.answer_video_note(FSInputFile("media/video/cat-huh.mp4"))
 				ans = await msg.answer(
-					text=localization["ru"]["auth"]["ext"]["teacher"]["err"],
+					text=phrase("ru/auth/ext/teacher/err"),
 					parse_mode="Markdown",
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
@@ -212,8 +212,8 @@ class Registration(RouterHandler):
 				return
 
 			if not self.bot. db.is_online():
-				logger.error(f"id={call.message.from_user.id}, {lang.user_error_database_connection}")
-				await call.message.edit_text(text=lang.user_error_database_connection)
+				logger.error(f"id={call.message.from_user.id}, database is offline")
+				await call.message.edit_text(text=phrase("ru/ext/err_db"))
 				return
 
 			data = await state.get_data()
@@ -239,13 +239,13 @@ class Registration(RouterHandler):
 			if success:
 				await state.clear()
 				await call.message.edit_text(
-					text=localization["ru"]["auth"]["teacher"]["success"].format(name=name),
+					text=phrase("ru/auth/teacher/success").format(name=name),
 					parse_mode="Markdown"
 				)
 			else:
 				logger.warning(f"id={call.message.from_user.id}, key no longer valid")
 				await call.message.edit_text(
-					text=localization["ru"]["auth"]["ext"]["teacher"]["key_valid"],
+					text=phrase("ru/auth/ext/teacher/key_valid"),
 					parse_mode="Markdown",
 					reply_markup=RegistrationForm.teacher_auth.reply_markup
 				)
@@ -260,7 +260,7 @@ class Registration(RouterHandler):
 			await call.answer()
 			c = call.data
 			if c == "change":
-				await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=localization["ru"]["auth"]["student"]["name"], prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
+				await groups.GroupsForm.course_selection.message_edit(self.bot, state, call.message, title=phrase("ru/auth/student/name"), prev_state=RegistrationForm.role_selection, next_state=RegistrationForm.data_approval)
 				return
 			
 			if c != "confirm":
@@ -269,8 +269,8 @@ class Registration(RouterHandler):
 			## approved ##
 
 			if not self.bot.db.is_online():
-				logger.error(f"id={call.message.from_user.id}, {lang.user_error_database_connection}")
-				await call.message.edit_text(text=lang.user_error_database_connection)
+				logger.error(f"id={call.message.from_user.id}, database is offline")
+				await call.message.edit_text(text=phrase("ru/ext/err_db"))
 				return
 			
 			data = await state.get_data()
@@ -299,15 +299,10 @@ class Registration(RouterHandler):
 
 			if success:
 				await call.message.edit_text(
-					text=localization["ru"]["auth"]["student"]["success"].format(course_number=course_number, group_name=group_name),
+					text=phrase("ru/auth/student/success").format(course_number=course_number, group_name=group_name),
 					parse_mode="Markdown"
 				)
 			else:
 				logger.error(f"id={call.message.from_user.id}, an error occurred while registering")
-				await call.message.edit_text(localization["ru"]["auth"]["ext"]["err"])
+				await call.message.edit_text(phrase("ru/auth/ext/err"))
 				await call.message.answer_video_note(FSInputFile("media/video/error-bd.mp4"))
-		
-
-
-
-	

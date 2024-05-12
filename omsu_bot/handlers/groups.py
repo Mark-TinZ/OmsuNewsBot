@@ -10,7 +10,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.database.models import Group, User, Student, Teacher
@@ -32,15 +32,15 @@ class GroupsForm(StatesGroup):
 		await state.set_data(data)
 
 		builder = (InlineKeyboardBuilder()
-			.button(text="Курс №1", callback_data="1")
-			.button(text="Курс №2", callback_data="2")
-			.button(text="Курс №3", callback_data="3")
-			.button(text="Курс №4", callback_data="4")
+			.button(text=phrase("ru/groups/courses")[0], callback_data="1")
+			.button(text=phrase("ru/groups/courses")[1], callback_data="2")
+			.button(text=phrase("ru/groups/courses")[2], callback_data="3")
+			.button(text=phrase("ru/groups/courses")[3], callback_data="4")
 			.adjust(2)
 		)
 
 		if data["groups_prev_state"]:
-			builder.row(InlineKeyboardButton(text="Назад", callback_data="return"))
+			builder.row(InlineKeyboardButton(text=phrase("ru/return"), callback_data="return"))
 
 		return dict(
 			text=(f"{title}\n\n" if title else "") + self.text,
@@ -48,7 +48,7 @@ class GroupsForm(StatesGroup):
 		)
 
 	course_selection = HandlerState(
-		text="Выберите *курс*:",
+		text=phrase("ru/groups/selection_courses"),
 		message_handler=course_selection_message
 	)
 
@@ -56,10 +56,9 @@ class GroupsForm(StatesGroup):
 	async def group_selection_message(self, bot, state: FSMContext):
 		await state.set_state(self)
 		if not bot.db.is_online():
-			# TODO: Исправить ошибку
-			# logger.error(f"id={state.key.user_id}, {lang.user_error_database_connection}")
+			logger.error(f"id={state.key.user_id}, database is offline")
 			return dict(
-				text=lang.user_error_database_connection
+				text=phrase("ru/ext/err_db")
 			)
 
 		data = await state.get_data()
@@ -76,10 +75,10 @@ class GroupsForm(StatesGroup):
 			builder.button(text=group.name, callback_data=f"{group.id_}/{group.name}")
 
 		builder.adjust(2)
-		builder.row(InlineKeyboardButton(text="Назад", callback_data="return"))
+		builder.row(InlineKeyboardButton(text=phrase("ru/return"), callback_data="return"))
 
 		return dict(
-			text=(title+"\n" if title else "") + f"📚 *Курс №{course_number}*\n\nВыберите *группу*:",
+			text=(title+"\n" if title else "") + phrase("ru/groups/selection_group").format(course_number=course_number),
 			reply_markup=builder.as_markup()
 		)
 
@@ -87,7 +86,6 @@ class GroupsForm(StatesGroup):
 
 
 class Groups(RouterHandler):
-
 	def __init__(self):
 		super().__init__()
 		

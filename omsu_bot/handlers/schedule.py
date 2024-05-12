@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from omsu_bot import utils
-import omsu_bot.data.lang as lang
+from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
 from omsu_bot.config import Config
 from omsu_bot.handlers import RouterHandler
@@ -38,13 +38,15 @@ def weeks_difference(start_date, end_date):
 def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 	is_teacher = isinstance(target, Teacher)
 	is_weekday = isinstance(at, int)
-	text = f"{lang.weekday_map[at] if is_weekday else lang.weekday_map[at.weekday()]+', '+at.strftime('%d.%m.%Y')}  -  {target.name}\n\n"
+	text = phrase("ru/schedule/rich_schedule").format(
+		weekday=phrase("ru/weekday_map")[at] if is_weekday else phrase("ru/weekday_map")[at.weekday()],
+		date=at.strftime('%d.%m.%Y'),
+		name=target.name
+	)
 	
 	last_num = 0
-
 	for lesson, subject, ext in lessons:
 		num = lesson.lesson_number
-
 		if is_teacher and last_num == num:
 			if ext:
 				text += f" - {ext.name}\n"
@@ -57,7 +59,7 @@ def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 
 		lesson_bounds = lesson_time.get(num, None)
 		lesson_type_room = f"{lesson.type_lesson} {lesson.room}"
-		lesson_name = subject.name if subject else "Неизвестный"
+		lesson_name = subject.name if subject else phrase("ru/unknown")
 
 		if len(lesson_name) + len(lesson_type_room) < 30:
 			text += f"*{num}. {lesson_name}* ({lesson_type_room})\n"
@@ -70,7 +72,7 @@ def rich_schedule(lessons, at: datetime | int, target: Teacher | Group = None):
 			text += f" - {ext.name}\n"
 	
 	if last_num == 0:
-		text += " 😄 Занятий нет..."
+		text += phrase("ru/schedule/no_schedule")
 	
 	return text
 
@@ -83,7 +85,7 @@ class ScheduleForm(StatesGroup):
 		if not bot.db.is_online():
 			await context.clear()
 			return dict(
-				text=lang.user_error_database_connection
+				text=phrase("ru/ext/err_db")
 			)
 		await context.set_state(self)
 
@@ -93,9 +95,9 @@ class ScheduleForm(StatesGroup):
 			user: User | None = sess.execute(sa.select(User).where(User.tg_id == tg_id)).scalar_one_or_none()
 
 			if not user:
-				logger.error(f"id={tg_id} не зарегистрированы!")
+				logger.warning(f"id={tg_id} is not registered!")
 				return dict(
-					text=lang.user_error_auth_unknown
+					text=phrase("ru/ext/err_unknown")
 				)
 			
 			at = at or datetime.today().date()
@@ -114,7 +116,7 @@ class ScheduleForm(StatesGroup):
 					.join(Group, Group.id_ == Student.group_id)
 				).first()
 
-				if not union: return dict(text=lang.user_error_database_logic)
+				if not union: return dict(text=phrase("ru/ext/err_db_logic"))
 				
 				target = union[1]
 
@@ -128,7 +130,7 @@ class ScheduleForm(StatesGroup):
 			elif user.role_id == "teacher": # type: ignore
 				target: Teacher = sess.execute(sa.select(Teacher).where(Teacher.user_id == user.id_)).scalar_one_or_none()
 				
-				if not target: return dict(text=lang.user_error_database_logic)
+				if not target: return dict(text=phrase("ru/ext/err_db_logic"))
 
 				lessons = sess.execute(
 					sa.select(Lesson, Subject, Group) 
@@ -139,7 +141,7 @@ class ScheduleForm(StatesGroup):
 				).all()
 		
 			if not target:
-				return dict(text=lang.user_error_database_logic)
+				return dict(text=phrase("ru/ext/err_db_logic"))
 			
 			text = rich_schedule(lessons, at, target)
 
@@ -149,11 +151,11 @@ class ScheduleForm(StatesGroup):
 		if show_calendar:
 			calendar_builder.build(builder, at)
 		else:
-			builder.button(text="На завтра", callback_data="show_tomorrow")
-			builder.button(text="Календарь", callback_data="show_calendar")
+			builder.button(text=phrase("ru/schedule/show_tomorrow"), callback_data="show_tomorrow")
+			builder.button(text=phrase("ru/schedule/show_calendar"), callback_data="show_calendar")
 
 			if tg_id in bot.config.main.admin_ids:
-				builder.button(text="Изменить", callback_data="edit_schedule")
+				builder.button(text=phrase("ru/schedule/edit_schedule"), callback_data="edit_schedule")
 			builder.adjust(2, 1)
 		
 		return dict(
@@ -213,7 +215,7 @@ class Schedule(RouterHandler):
 				case "edit_schedule":
 					await call.answer()
 				case _:
-					await call.answer(text="В разработке...")
+					await call.answer(text=phrase("ru/development"))
 		
 	@staticmethod
 	async def schedule_scheduler(bot: Bot, db, config: Config):
@@ -286,6 +288,6 @@ class Schedule(RouterHandler):
 					logger.error("Logical exception, database entry is corrupted")
 					continue
 
-				text = "Ваше расписание на завтра:\n" + rich_schedule(lessons, at, target)
+				text = phrase("ru/schedule/tomorrow_schedule").format(schedule=rich_schedule(lessons, at, target))
 				mailing = broadcaster.Broadcast(bot, [user.tg_id])
 				await mailing.send_message(text=text, parse_mode="Markdown")
