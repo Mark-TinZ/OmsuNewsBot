@@ -89,7 +89,7 @@ class About(RouterHandler):
 					.format(id=msg.from_user.id, text=text, username=msg.from_user.username),
 				parse_mode="HTML"
 			)
-			await msg.reply(phrase("ru/about/idea_answer"))
+			await msg.reply(phrase("ru/about/ticket/idea_answer"))
 			await state.clear() 
 
 		@router.callback_query(AboutForm.about_idea_ticket)

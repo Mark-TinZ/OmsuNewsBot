@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 class RegistrationForm(StatesGroup):
 	greetings_approval = HandlerState(
-		text=phrase("ru/auth/greeting"),
+		text=phrase("ru/auth/greetings"),
 		# parse_mode="HTML",
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=phrase("ru/auth/next"), callback_data="approve")
+				.button(text=phrase("ru/next"), callback_data="approve")
 				.as_markup()
 	)
 	
@@ -36,7 +36,7 @@ class RegistrationForm(StatesGroup):
 		text=phrase("ru/auth/warning"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=phrase("ru/auth/approve"), callback_data="approve")
+				.button(text=phrase("ru/approve"), callback_data="approve")
 				.as_markup()
 	)
 
@@ -55,7 +55,7 @@ class RegistrationForm(StatesGroup):
 		text=phrase("ru/auth/teacher/auth"),
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text=phrase("ru/auth/return"), callback_data="return")
+				.button(text=phrase("ru/return"), callback_data="return")
 				.as_markup()
 	)
 

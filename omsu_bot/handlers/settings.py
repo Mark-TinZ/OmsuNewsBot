@@ -1,4 +1,3 @@
-from cmath import phase
 import json
 import logging
 import sqlalchemy as sa
@@ -63,12 +62,12 @@ class SettingsForm(StatesGroup):
 					settings_dict["schedule_view"] = False
 					success = True
 
-			text += phase("ru/settings/notifications_enabled").format(
-				icon="🔔" if settings_dict['notifications_enabled'] else "🔕",
-				switch="Вкл." if settings_dict['notifications_enabled'] else "Выкл."
+			text += phrase("ru/settings/notifications_enabled").format(
+				icon="🔔" if settings_dict["notifications_enabled"] else "🔕",
+				switch="Вкл." if settings_dict["notifications_enabled"] else "Выкл."
 			)
-			text += f"Формат расписания: **В разработке**\n\n"
-			
+			text += phrase("ru/settings/format_schedule")
+
 			if success:
 				settings_json = json.dumps(settings_dict)
 				sess.execute(sa.update(User).where(User.tg_id == tg_id).values(settings=settings_json))
@@ -86,7 +85,7 @@ class SettingsForm(StatesGroup):
 
 				student, group = union
 
-				text += f"*👨‍🎓 Студент\n💼 Группа:* {group.name}"
+				text += phrase("ru/settings/student_group").format(group=group.name)
 
 			elif user.role_id == "teacher":
 				teacher: Teacher = sess.execute(
@@ -98,7 +97,7 @@ class SettingsForm(StatesGroup):
 					logger.error(f"id={context.key.user_id}, Logical exception, database entry corrupted")
 					return dict(text=phrase("ru/ext/err_db_logic"))
 
-				text += f"*👨‍🏫 Преподаватель\n😎 Имя:* {teacher.name}"
+				text += phrase("ru/settings/teacher_name").format(name=teacher.name)
 		
 
 		return dict(
@@ -112,9 +111,9 @@ class SettingsForm(StatesGroup):
 		message_handler=settings_message,
 		reply_markup=
 			InlineKeyboardBuilder()
-				.button(text="🔕/🔔 Уведомление", callback_data="notifications_enable")
-				.button(text="🖼/📄 Отображение расписания", callback_data="schedule_view")
-				.button(text="❌ Удалить аккаунт", callback_data="account_remove")
+				.button(text=phrase("ru/settings/notification_button"), callback_data="notifications_enable")
+				.button(text=phrase("ru/settings/schedule_button"), callback_data="schedule_view")
+				.button(text=phrase("ru/settings/delete_button"), callback_data="account_remove")
 				.adjust(1)
 				.as_markup()
 	)
@@ -158,7 +157,7 @@ class Settings(RouterHandler):
 						sess.delete(user)
 						await call.message.delete()
 						await call.message.answer(
-							text="⛔ Ваш аккаунт успешно *удалён*",
+							text=phrase("ru/settings/account_remove"),
 							reply_markup=ReplyKeyboardRemove(),
 							parse_mode="Markdown"
 						)
@@ -178,7 +177,7 @@ class Settings(RouterHandler):
 						settings_dict = json.loads(settings_json)
 						if settings_dict.get("notifications_enabled", None) is None:
 							logger.error("Failed to find 'notifications_enabled'.")
-							await call.message.edit_text(text=phase("ru/ext/err_try_again"))
+							await call.message.edit_text(text=phrase("ru/ext/err_try_again"))
 							return
 						
 						settings_dict["notifications_enabled"] = not settings_dict["notifications_enabled"]
@@ -187,7 +186,7 @@ class Settings(RouterHandler):
 
 					await SettingsForm.settings.message_edit(self.bot, state, call.message.message_id, call.message.chat.id)
 				case _:
-					await call.answer(text="В разработке...")
+					await call.answer(text=phrase("ru/development"))
 						
 
 

@@ -1,26 +1,20 @@
-from datetime import datetime
 import logging
-import sqlalchemy as sa
-import sqlalchemy.orm as sorm
+from datetime import datetime
 
 from aiogram import Router, types, F
-from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
-from aiogram.utils.chat_action import ChatActionSender
 
 from omsu_bot import utils
-from omsu_bot.config import Config
 from omsu_bot.data.lang import phrase
 from omsu_bot.fsm import HandlerState
+from omsu_bot.filters import MainFilter
 from omsu_bot.handlers import RouterHandler
 from omsu_bot.handlers.about import AboutForm
 from omsu_bot.handlers.admin import AdminForm
 from omsu_bot.handlers.schedule import ScheduleForm
 from omsu_bot.handlers.settings import SettingsForm
-from omsu_bot.database.models import Group, User, Student, Teacher
-from omsu_bot.filters import MainFilter
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +61,9 @@ class MenuForm(StatesGroup):
 		days_difference = (datetime.today().date() - cfg.main.academic_start).days 
 
 		return dict(
-			text=phrase("ru/menu/academic_week").format(academic_week=(days_difference // 7) + 1)
+			text=phrase("ru/menu/academic_weeks")
+				.format(academic_week=(days_difference // 7) + 1)
+				
 		)
 	
 	main_academic = HandlerState(message_handler=main_academic_message)

@@ -81,7 +81,6 @@ class ScheduleForm(StatesGroup):
 	@staticmethod
 	async def schedule_message(self, bot, context: FSMContext, at=None, show_calendar: bool = False):
 		tg_id = context.key.user_id
-		print(bot.db.is_online())
 		if not bot.db.is_online():
 			await context.clear()
 			return dict(

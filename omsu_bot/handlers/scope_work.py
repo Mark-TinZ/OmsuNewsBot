@@ -1,13 +1,12 @@
-import logging
 import re
+import logging
 
-from aiogram import Router, Bot
+from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, Chat, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile
 
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from omsu_bot import utils
 
 from omsu_bot.fsm import HandlerState
 from omsu_bot.handlers import RouterHandler

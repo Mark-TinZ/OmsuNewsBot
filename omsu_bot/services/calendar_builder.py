@@ -1,7 +1,8 @@
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from datetime import datetime, timedelta, date
-import omsu_bot.data.lang as lang
 import calendar
+
+from datetime import datetime, date
+from omsu_bot.data.lang import phrase
+from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 
 def build(builder: InlineKeyboardBuilder, at: date):
@@ -12,11 +13,11 @@ def build(builder: InlineKeyboardBuilder, at: date):
 
 	day = at.day
 	month = at.month
-	month_name = lang.month_map[month]
+	month_name = phrase("ru/month_map").get(month, "{month_map}")
 	year = at.year
 	week_day, day_count = calendar.monthrange(year, month)
 
-	for i in lang.weekday_map:
+	for i in phrase("ru/weekday_map"):
 		builder.button(text=i, callback_data="label")
 
 	for i in range(week_day):

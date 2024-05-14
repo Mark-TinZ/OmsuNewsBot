@@ -94,7 +94,18 @@ class HandlerState(State):
 						await utils.register_context(context, msg, safe=register_context_safe)
 					return msg
 				except exceptions.TelegramForbiddenError:
-					logger.error(f"Forbidden sending message to the user ({chat_id})")	
+					logger.error(f"Forbidden sending message to the user ({chat_id})")
+				except exceptions.TelegramBadRequest:
+					msg = await tg.send_message(
+						chat_id=chat_id, 
+						reply_to_message_id=reply_to_message_id, 
+						parse_mode=self.parse_mode, 
+						text=data.get("text", "exception")
+								.replace("_", "\\_")
+								.replace("*", "\\*")
+								.replace("[", "\\[")
+								.replace("`", "\\`")
+					)
 
 		else:
 			await context.set_state(self)
